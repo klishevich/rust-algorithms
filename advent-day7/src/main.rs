@@ -3,7 +3,8 @@ use std::cmp;
 fn min_total_fuel1(f: fn(i32) -> i32, input: &Vec<i32>) -> i32 {
     let mut min_sum = i32::MAX;
     let mut pos = *input.iter().min().unwrap();
-    while pos <= *input.iter().max().unwrap() {
+    let max = *input.iter().max().unwrap();
+    while pos <= max {
         let sum = input.iter().fold(0, |sum, &x| sum + f((pos-x).abs()));
         min_sum = cmp::min(min_sum, sum);
         pos+=1;
