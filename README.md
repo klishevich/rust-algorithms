@@ -10,3 +10,8 @@ cargo new --vcs=none advent-day8
 
 1. `cd advent-day7`
 2. `cargo run ` or (`cargo build` and `./target/debug/advent-day7`)
+
+## Debug errors
+
+`RUST_BACKTRACE=1 cargo run`
+`RUST_BACKTRACE=full cargo run`
