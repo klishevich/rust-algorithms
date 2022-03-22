@@ -11,7 +11,7 @@ struct Group {
 
 impl Group {
     fn intersect(&self, intervals: &Vec<(i32,i32)>) -> bool {
-        let test_intersect_interval = |interval_begin: i32, interval_end: i32| -> bool {
+        let test_intersect_interval_fn = |interval_begin: i32, interval_end: i32| -> bool {
             let mut s_last_interval_end: i32 = -1;
             for s_interval in &self.intervals {
                 let s_interval_begin = s_interval.0;
@@ -30,7 +30,7 @@ impl Group {
         };
 
         for interval in intervals {
-            if test_intersect_interval(interval.0, interval.1) {
+            if test_intersect_interval_fn(interval.0, interval.1) {
                 return true;
             }
         }
