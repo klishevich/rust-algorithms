@@ -45,7 +45,7 @@ fn main() {
         }
     }
 
-    let mut my_bfs = MyDfs {
+    let mut my_dfs = MyDfs {
         width,
         height,
         visited,
@@ -77,7 +77,7 @@ fn main() {
             let top = if i > 0 { array2[i - 1][j] } else { 10 };
             let bottom = if i < height - 1 { array2[i + 1][j] } else { 10 };
             if element < &left && element < &right && element < &top && element < &bottom {
-                let cnt = my_bfs.run(&array2, i, j);
+                let cnt = my_dfs.run(&array2, i, j);
                 update_max_fn(cnt);
             }
         }
