@@ -1,4 +1,5 @@
 use std::fs;
+use priority_queue::PriorityQueue;
 
 struct MyDfs {
     width: usize,
@@ -51,25 +52,9 @@ fn main() {
         visited,
     };
 
-    let mut max_res: Vec<i32> = vec![0; 3];
-    // cannot borrow `update_max_fn` as mutable, as it is not declared as mutable
-    let mut update_max_fn = |val: i32| {
-        let mut index = 100;
-        for (i, el) in max_res.iter().enumerate().rev() {
-            if val > *el {
-                index = i;
-                break;
-            }
-        }
-        if index < 100 {
-            let mut i = 0;
-            while i < index {
-                max_res[i] = max_res[i + 1];
-                i = i + 1;
-            }
-            max_res[index] = val;
-        }
-    };
+    let mut pq = PriorityQueue::new();
+
+
     for (i, line) in array2.iter().enumerate() {
         for (j, element) in line.iter().enumerate() {
             let left = if j > 0 { line[j - 1] } else { 10 };
@@ -78,10 +63,15 @@ fn main() {
             let bottom = if i < height - 1 { array2[i + 1][j] } else { 10 };
             if element < &left && element < &right && element < &top && element < &bottom {
                 let cnt = my_dfs.run(&array2, i, j);
-                update_max_fn(cnt);
+                pq.push(cnt, -cnt);
+                if pq.len() > 3 {
+                    pq.pop();
+                }
             }
         }
     }
-    println!("max_res {:?}", max_res);
-    println!("res {:?}", max_res[0] * max_res[1] * max_res[2]);
+
+    println!("pq len {}", pq.len());
+    let result = pq.iter().fold(1, |a, (c, _)| a * c);
+    println!("res {:?}", result);
 }
