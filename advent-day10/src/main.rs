@@ -91,17 +91,13 @@ fn part2() {
                 }
             }
         }
-        if is_corrupted {
-            println!("- Corrupted {}", line);
-        } else {
+        if !is_corrupted {
             let score = c_vec
                 .into_iter()
                 .rev()
                 .fold(0, |acc, c| acc * 5 + get_part2_val(c));
             scores_vec.push(score);
         }
-
-        println!("{:?}", scores_vec);
     }
 
     scores_vec.sort_unstable();
