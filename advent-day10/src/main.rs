@@ -68,7 +68,7 @@ fn part1() {
 }
 
 fn part2() {
-    let filename = "src/data-real.txt";
+    let filename = "src/data-test0.txt";
     let contents = fs::read_to_string(filename).expect("Something went wrong reading the file");
 
     let open_braces = vec!['(', '{', '[', '<'];
