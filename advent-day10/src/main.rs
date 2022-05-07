@@ -35,7 +35,6 @@ fn part1() {
     let contents = fs::read_to_string(filename).expect("Something went wrong reading the file");
 
     let open_braces = vec!['(', '{', '[', '<'];
-    let close_braces = vec![')', '}', ']', '>'];
 
     let mut illegal_char_vec: Vec<char> = Vec::new();
 
@@ -52,7 +51,7 @@ fn part1() {
                     is_corrupted = true;
                     break;
                 } else {
-                    c_vec.remove(c_vec.len() - 1);
+                    c_vec.pop();
                 }
             }
         }
@@ -106,5 +105,5 @@ fn part2() {
 }
 
 fn main() {
-    part2();
+    part1();
 }
