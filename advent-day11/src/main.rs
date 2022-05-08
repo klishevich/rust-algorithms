@@ -36,8 +36,10 @@ fn main() {
     println!("ROWS {}, COLS {}", rows, cols);
 
     let mut flashes = 0;
+    let mut prev_flashes: i32;
 
-    for _ in 0..100 {
+    for ii in 0..1000 {
+        prev_flashes = flashes;
         let mut flashed = false;
         for (_, row) in dumbo_octopuses_matrix.iter_mut().enumerate() {
             for (_, el) in row.iter_mut().enumerate() {
@@ -116,6 +118,10 @@ fn main() {
                 }
                 
             }
+        }
+        if flashes - prev_flashes == rows * cols {
+            println!("ii {}", ii + 1);
+            break;
         }
     }
 
