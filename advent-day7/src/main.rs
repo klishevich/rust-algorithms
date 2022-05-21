@@ -16,6 +16,7 @@ fn main() {
     let input_test = vec![16, 1, 2, 0, 4, 2, 7, 1, 2, 14];
     let input = input_test;
     println!("{:?}", input);
+    // FUNCTOR
     let dist_fn_part1 = |d: i32| -> i32 { d };
     let dist_fn_part2 = |d: i32| -> i32 { d * (d + 1) / 2 };
 
