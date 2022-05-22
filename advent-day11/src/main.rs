@@ -13,6 +13,7 @@ fn main() {
             } else {
                 let num = num_option.unwrap();
                 let try_num_u8 = u8::try_from(num);
+                // MATCH / SWITCH
                 match try_num_u8 {
                     Ok(v) => {
                         column_vec.push(v);
