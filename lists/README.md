@@ -7,3 +7,10 @@ https://rust-unofficial.github.io/too-many-lists/index.html
 `cargo build` - build
 
 `cargo test` - run tests
+
+## Code Examples
+
+```            
+    // TERNARY
+    // let id = if index == 0 { cur_id } else { bfs_next_id };
+```
