@@ -11,22 +11,10 @@ fn main() {
         // TODO: remove copy paste
         let (left_str, right_str) = line.split_once("-").unwrap();
         if left_str != "end" && right_str != "start" {
-            let routes_to_opt = routes_map.get_mut(left_str);
-            match routes_to_opt {
-                Some(routes_to) => routes_to.push(right_str),
-                None => {
-                    routes_map.insert(left_str, vec![right_str]);
-                }
-            };
+            routes_map.entry(left_str).or_default().push(right_str);
         }
         if right_str != "end" && left_str != "start" {
-            let routes_to_reversed_opt = routes_map.get_mut(right_str);
-            match routes_to_reversed_opt {
-                Some(routes_to) => routes_to.push(left_str),
-                None => {
-                    routes_map.insert(right_str, vec![left_str]);
-                }
-            };
+            routes_map.entry(right_str).or_default().push(left_str);
         }
     }
 
