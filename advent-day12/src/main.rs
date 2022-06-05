@@ -8,7 +8,6 @@ fn main() {
 
     let content = fs::read_to_string("src/data-test1.txt").expect("we have a bug");
     for line in content.lines() {
-        // TODO: remove copy paste
         let (left_str, right_str) = line.split_once("-").unwrap();
         if left_str != "end" && right_str != "start" {
             routes_map.entry(left_str).or_default().push(right_str);
