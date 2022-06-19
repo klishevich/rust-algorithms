@@ -20,8 +20,12 @@ fn main() {
         }
     }
 
+    let mut cur_rows = max_y + 1;
+    println!("cur_rows {}", cur_rows);
+    let mut cur_columns = max_x + 1;
+    println!("cur_columns {}", cur_columns);
     // CREATE MATRIX OF FIXED SIZE
-    let mut matrix = vec![vec![0; max_x + 1]; max_y + 1];
+    let mut matrix = vec![vec![0; cur_columns]; cur_rows];
     // CREATE DYNAMIC LENGTH VECTOR
     let mut fold_vec: Vec<(char, usize)> = Vec::new();
 
@@ -43,60 +47,50 @@ fn main() {
         }
     }
 
-    for v in &matrix {
-        println!("{:?}", v);
-    }
-
-    for v in &fold_vec {
-        println!("type: {}, val: {}", v.0, v.1);
-    }
-
-    let mut cur_rows = max_y + 1;
-    println!("cur_rows: {}", cur_rows);
-    let mut cur_columns = max_x + 1;
-    println!("cur_columns: {}", cur_columns);
-
-    let (fold_type, fold_val) = fold_vec[0];
-
-    if fold_type == 'y' {
-        for row_index in 0..cur_rows {
-            if row_index == fold_val { break; }
-            let mirror_row_index = 2 * fold_val - row_index;
-            if mirror_row_index > cur_rows { panic!("mirror_row_index > cur_rows"); }
-            for el_index in 0..cur_columns {
-                if matrix[mirror_row_index][el_index] == 1 {
-                    matrix[row_index][el_index] = 1;
+    for (fold_type, fold_val) in fold_vec {
+        println!("fold_type: {}, fold_val: {}", fold_type, fold_val);
+        if fold_type == 'y' {
+            for row_index in 0..cur_rows {
+                if row_index == fold_val { break; }
+                let mirror_row_index = 2 * fold_val - row_index;
+                for el_index in 0..cur_columns {
+                    if mirror_row_index < cur_rows {
+                        if matrix[mirror_row_index][el_index] == 1 {
+                            matrix[row_index][el_index] = 1;
+                        }
+                    }
                 }
             }
-        }
-        cur_rows = fold_val;
-    } else if fold_type == 'x' {
-        for col_index in 0..cur_columns {
-            if col_index == fold_val { break; }
-            let mirror_col_index = 2 * fold_val - col_index;
-            if mirror_col_index > cur_columns { panic!("mirror_col_index > cur_columns"); }
-            for el_index in 0..cur_rows {
-                if matrix[el_index][mirror_col_index] == 1 {
-                    matrix[el_index][col_index] = 1;
+            cur_rows = fold_val;
+        } else if fold_type == 'x' {
+            for col_index in 0..cur_columns {
+                if col_index == fold_val { break; }
+                let mirror_col_index = 2 * fold_val - col_index;
+                for el_index in 0..cur_rows {
+                    if mirror_col_index < cur_columns {
+                        if matrix[el_index][mirror_col_index] == 1 {
+                            matrix[el_index][col_index] = 1;
+                        }
+                    }
                 }
             }
+            cur_columns = fold_val;
         }
-        cur_columns = fold_val;
-    }
-
-    for row_index in 0..cur_rows {
-        println!("{:?}", matrix[row_index]);
     }
     
     let mut res = 0;
 
+    println!("--- result ---");
     for i in 0..cur_rows {
         for j in 0..cur_columns {
             if matrix[i][j] == 1 {
                 res += 1;
+                print!("#");
+            } else {
+                print!(".");
             }
         }
+        println!("");
     }
-
     println!("res {}", res);
 }
