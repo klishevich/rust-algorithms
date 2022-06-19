@@ -2,7 +2,7 @@ use std::fs;
 use std::collections::HashMap;
 
 fn main() {
-    let content = fs::read_to_string("src/data-real.txt").expect("we have a bug");
+    let content = fs::read_to_string("src/data-test1.txt").expect("we have a bug");
 
     let initial_line = content.lines().next().unwrap();
     let mut char_vec: Vec<char> = initial_line.chars().collect();
@@ -34,7 +34,7 @@ fn main() {
         print!("{}", ch);
     }
 
-    for _j in 0..10 {
+    for j in 0..40 {
         let mut i = 0;
         let mut len = char_vec.len();
         loop {
@@ -54,11 +54,11 @@ fn main() {
             };
         }
     
-        println!("\nRESULT CHAR_VEC");
-        for ch in &char_vec {
-            print!("{}", ch);
-        }
-        println!("\nCHAR_VEC lenth {}", len);
+        // println!("\nRESULT CHAR_VEC");
+        // for ch in &char_vec {
+        //     print!("{}", ch);
+        // }
+        println!("Step {} CHAR_VEC lenth {}", j, len);
     }
 
     let mut count_map: HashMap<char, i32> = HashMap::new();
