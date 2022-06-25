@@ -15,3 +15,11 @@ cargo new --vcs=none advent-day8
 
 `RUST_BACKTRACE=1 cargo run`
 `RUST_BACKTRACE=full cargo run`
+
+## Hints
+
+### HashMap::from
+
+```rust
+HashMap::from([(char1, 1), (char2, 1)])
+```
