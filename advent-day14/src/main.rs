@@ -21,20 +21,14 @@ fn main() {
         rules_map.entry(char1).or_default().insert(char2, char3);
     }
 
-    // OUTPUT the HashMap
-    // for (ch1, map1) in rules {
-    //     println!("ch1 {}", ch1);
-    //     for (el, map2) in map1 {
-    //         println!("ch2 {}, ch3 {}", el, map2);
-    //     }
-    // }
-
     println!("BEFORE CHAR_VEC");
     for ch in &char_vec {
         print!("{}", ch);
     }
 
-    for j in 0..40 {
+    let steps = 10;
+
+    for j in 0..steps {
         let mut i = 0;
         let mut len = char_vec.len();
         loop {
@@ -53,12 +47,8 @@ fn main() {
                 break;
             };
         }
-    
-        // println!("\nRESULT CHAR_VEC");
-        // for ch in &char_vec {
-        //     print!("{}", ch);
-        // }
-        println!("Step {} CHAR_VEC lenth {}", j, len);
+
+        println!("Step {} CHAR_VEC length {}", j, len);
     }
 
     let mut count_map: HashMap<char, i32> = HashMap::new();
