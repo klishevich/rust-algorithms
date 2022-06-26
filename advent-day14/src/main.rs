@@ -93,7 +93,7 @@ fn part2() {
         let char2 = left.chars().nth(1).unwrap();
         let char3 = right.chars().next().unwrap();
         rules_map.entry(char1).or_default().insert(char2, char3);
-        rule_results0.entry(char1).or_default().insert(char2, HashMap::from([(char1, 1), (char2, 1)]));
+        rule_results0.entry(char1).or_default().insert(char2, HashMap::new());
     }
     println!("rules_map");
     for (ch1, map1) in &rules_map {
@@ -175,7 +175,7 @@ fn part2() {
     let rule_results30 = get_result_fn(rule_results20);
     let rule_results40 = get_result_fn(rule_results30);
 
-    println!("rule_results40");
+    println!("rule_results10");
     for (ch1, map1) in &rule_results40 {
         println!("{}", ch1);
         for (ch2, map2) in map1 {
@@ -187,6 +187,10 @@ fn part2() {
     }
 
     let initial_line_char_vec: Vec<char> = initial_line.chars().collect();
+    println!("BEFORE CHAR_VEC");
+    for ch in &initial_line_char_vec {
+        print!("{}", ch);
+    }
     let rrr = get_result_for_any_string_fn(&rule_results40, initial_line_char_vec, false);
     let mut max = std::i64::MIN;
     let mut min = std::i64::MAX;
