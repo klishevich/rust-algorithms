@@ -1,5 +1,5 @@
-use std::fs;
 use std::collections::HashMap;
+use std::fs;
 
 type Matrix = Vec<Vec<i32>>;
 
@@ -7,31 +7,28 @@ struct ChitonsDfs {
     best_path_score: i32,
     rows: i32,
     cols: i32,
-    visited: HashMap<i32, i32>
+    visited: HashMap<i32, i32>,
 }
 
 impl ChitonsDfs {
     pub fn run(&mut self, m: &Matrix, r: i32, c: i32, score: i32) -> () {
-        let mut exit = false;
+        let r_usize: usize = r.try_into().unwrap();
+        let c_usize: usize = c.try_into().unwrap();
+        let new_score: i32 = score + m[r_usize][c_usize];
+
         match self.visited.get(&self.get_key(r, c)) {
             Some(val) => {
-                if *val <= score {
-                    exit = true;
+                if *val <= new_score {
+                    return ();
                 } else {
-                    self.visited.insert(self.get_key(r, c), score);
+                    self.visited.insert(self.get_key(r, c), new_score);
                 }
-            },
+            }
             None => {
-                self.visited.insert(self.get_key(r, c), score);
+                self.visited.insert(self.get_key(r, c), new_score);
             }
         };
-        if exit {
-            return;
-        }
 
-        let r_usize: usize = r.try_into().unwrap();
-        let c_usize: usize = c.try_into().unwrap(); 
-        let new_score: i32 = score + m[r_usize][c_usize];
         if r == self.rows - 1 && c == self.cols - 1 {
             if new_score < self.best_path_score {
                 self.best_path_score = new_score;
@@ -39,10 +36,9 @@ impl ChitonsDfs {
             return ();
         }
 
-        if score > self.best_path_score {
+        if new_score > self.best_path_score {
             return ();
         }
-        
         let c_left = c - 1;
         let c_right = c + 1;
         let r_top = r - 1;
@@ -68,31 +64,40 @@ impl ChitonsDfs {
 }
 
 fn main() {
-    println!("Hello, world!");
     let content = fs::read_to_string("src/data-real.txt").expect("some bug");
-    let matrix_rows = content.lines().count();
-    let matrix_cols = content.lines().next().unwrap().chars().count();
+    let repeats: usize = 5;
+    let matrix_initial_rows = content.lines().count();
+    let matrix_rows = matrix_initial_rows * repeats;
+    let matrix_initial_cols = content.lines().next().unwrap().chars().count();
+    let matrix_cols = matrix_initial_cols * repeats;
     let mut matrix: Matrix = vec![vec![0; matrix_cols]; matrix_rows];
 
     for (index_line, line) in content.lines().enumerate() {
         for (index_ch, ch) in line.chars().enumerate() {
-            // TRY_FROM
-            // let val: usize = usize::try_from(ch.to_digit(10).unwrap()).unwrap();
-            // TRY_INTO
-            let val: i32 = ch.to_digit(10).unwrap().try_into().unwrap();
-            matrix[index_line][index_ch] = val;
+            for ir in 0..repeats {
+                for ic in 0..repeats {
+                    let val_start: i32 = ch.to_digit(10).unwrap().try_into().unwrap();
+                    let mut val: i32 =
+                        val_start + i32::try_from(ir).unwrap() + i32::try_from(ic).unwrap();
+                    if val > 9 {
+                        val -= 9;
+                    }
+                    matrix[ir * matrix_initial_rows + index_line]
+                        [ic * matrix_initial_cols + index_ch] = val;
+                }
+            }
         }
     }
 
-    for row in &matrix {
-        println!("{:?}", row);
-    }
+    // for row in &matrix {
+    //     println!("{:?}", row);
+    // }
 
     let mut chitons_dfs = ChitonsDfs {
-        best_path_score: 600,
+        best_path_score: 4000,
         rows: matrix_rows.try_into().unwrap(),
         cols: matrix_cols.try_into().unwrap(),
-        visited: HashMap::new()
+        visited: HashMap::new(),
     };
 
     chitons_dfs.run(&matrix, 0, 0, 0);

@@ -23,3 +23,12 @@ cargo new --vcs=none advent-day8
 ```rust
 HashMap::from([(char1, 1), (char2, 1)])
 ```
+
+### try_from and try_into
+
+```rust
+// TRY_FROM
+let val: usize = usize::try_from(ch.to_digit(10).unwrap()).unwrap();
+// TRY_INTO
+let start_val: i32 = ch.to_digit(10).unwrap().try_into().unwrap();
+```
