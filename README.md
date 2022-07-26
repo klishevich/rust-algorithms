@@ -32,3 +32,7 @@ let val: usize = usize::try_from(ch.to_digit(10).unwrap()).unwrap();
 // TRY_INTO
 let start_val: i32 = ch.to_digit(10).unwrap().try_into().unwrap();
 ```
+
+## install crate
+
+add to Cargo.toml file 
