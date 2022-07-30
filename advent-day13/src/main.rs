@@ -10,6 +10,7 @@ fn main() {
             break;
         }
         let (x_str, y_str) = line.split_once(",").unwrap();
+        // PARSE INT
         let x_usize: usize = x_str.parse().unwrap();
         if x_usize > max_x {
             max_x = x_usize;
