@@ -43,8 +43,8 @@ impl PacketParser {
 
         if p_type == 4 {
             println!("LITERAL");
-            // LOOP
             let mut accum_val: String = "".to_string();
+            // LOOP
             loop {
                 let first_bit = PacketParser::read_int(bs, &mut pos, 1);
                 accum_val += str::from_utf8(&bs[pos..pos + 4]).unwrap();
@@ -53,65 +53,46 @@ impl PacketParser {
                     break;
                 }
             }
+
             println!("literal end pos {}, accum_val {}", pos, accum_val);
+            // let val = u32::from_str_radix(&accum_val, 2).unwrap();
+            // println!("val {}", val);
             self.depth -= 1;
             return pos;
         } else {
-            let length_id = str::from_utf8(&bs[6..7]).unwrap();
-            if length_id == "0" {
-                // println!("length_id 0 (15 bit length) BITS_IN_SUB_PACKETS");
-                let length_end_pos = 7 + 15;
-                let bits_in_sub_packets_str = str::from_utf8(&bs[7..length_end_pos]).unwrap();
-                let bits_in_sub_packets =
-                    usize::from_str_radix(bits_in_sub_packets_str, 2).unwrap();
+            let length_id = PacketParser::read_int(bs, &mut pos, 1);
+            if length_id == 0 {
+                let bits_in_sub_packets: usize = PacketParser::read_int(bs, &mut pos, 15).try_into().unwrap();
                 println!("BITS_IN_SUB_PACKETS {}", bits_in_sub_packets);
-                let left_str = str::from_utf8(&bs[length_end_pos..s.len()]).unwrap();
-                println!("lft {}", left_str);
-                let mut start_index = length_end_pos;
-                println!("start_index {}", start_index);
-                let end_index = length_end_pos + bits_in_sub_packets;
+                let end_pos = pos + bits_in_sub_packets;
+                println!("end_pos {}", end_pos);
                 loop {
                     println!("-loop depth {}", self.depth);
-                    let sub_str = str::from_utf8(&bs[start_index..end_index]).unwrap();
-                    start_index = start_index + PacketParser::run(self, sub_str);
-                    // println!("start_index {}", start_index);
-                    if start_index >= bits_in_sub_packets {
+                    let sub_str = str::from_utf8(&bs[pos..s.len()]).unwrap();
+                    pos = pos + PacketParser::run(self, sub_str);
+                    println!("new pos {}", pos);
+                    if pos >= end_pos {
                         break;
                     }
                 }
-
-                // let hardcoded_num = 2;
-                // for i in 0..hardcoded_num {
-                //     let start = length_end_pos + i*bits_in_sub_packet;
-                //     let end = start + bits_in_sub_packet;
-                //     let sub_str = str::from_utf8(&bytes_str[start..end]).unwrap();
-                //     PacketParser::run(self, sub_str);
-                // }
                 self.depth -= 1;
-                return end_index; // length_end_pos + hardcoded_num * bits_in_sub_packet;
+                return end_pos;
             } else {
-                // println!("length_id 1 (11 bit length) NUMBER_OF_SUB_PACKETS");
-                let end_pos = 7 + 11;
-                let sub_packets_str = str::from_utf8(&bs[7..end_pos]).unwrap();
-                // println!("sub_packets_str {}", sub_packets_str);
-                let sub_packets = usize::from_str_radix(sub_packets_str, 2).unwrap();
+                let sub_packets = PacketParser::read_int(bs, &mut pos, 11);
                 println!("NUMBER_OF_SUB_PACKETS {}", sub_packets);
-                let mut start_pos = end_pos;
                 for _ in 0..sub_packets {
-                    // TODO: refactor
-                    let sub_str = str::from_utf8(&bs[start_pos..s.len()]).unwrap();
-                    // println!("lft {}", sub_str);
-                    start_pos = PacketParser::run(self, sub_str);
+                    let sub_str = str::from_utf8(&bs[pos..s.len()]).unwrap();
+                    pos = pos + PacketParser::run(self, sub_str);
                 }
                 self.depth -= 1;
-                return usize::MAX;
+                return pos;
             }
         }
     }
 }
 
 fn main() {
-    let content = fs::read_to_string("src/data-test01.txt").expect("reading file error");
+    let content = fs::read_to_string("src/data-real.txt").expect("reading file error");
     let str = content.lines().next().unwrap();
     println!("str {}", str);
     // maybe string of bytes b""?
