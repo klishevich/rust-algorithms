@@ -29,7 +29,7 @@ impl PacketParser {
     //     return str;
     // }
 
-    pub fn run(&mut self, s: &str) -> usize {
+    pub fn run(&mut self, s: &str) -> (usize, u32) {
         self.depth += 1;
         println!("-- PacketParser depth {} --", self.depth);
         println!("str {}", s);
@@ -54,11 +54,11 @@ impl PacketParser {
                 }
             }
 
-            println!("literal end pos {}, accum_val {}", pos, accum_val);
-            // let val = u32::from_str_radix(&accum_val, 2).unwrap();
-            // println!("val {}", val);
+            // println!("literal end pos {}, accum_val {}", pos, accum_val);
+            let val = u32::from_str_radix(&accum_val, 2).unwrap();
+            println!("val {}", val);
             self.depth -= 1;
-            return pos;
+            return (pos, val);
         } else {
             let length_id = PacketParser::read_int(bs, &mut pos, 1);
             if length_id == 0 {
@@ -66,33 +66,39 @@ impl PacketParser {
                 println!("BITS_IN_SUB_PACKETS {}", bits_in_sub_packets);
                 let end_pos = pos + bits_in_sub_packets;
                 println!("end_pos {}", end_pos);
+                let mut end_sum = 0;
                 loop {
                     println!("-loop depth {}", self.depth);
                     let sub_str = str::from_utf8(&bs[pos..s.len()]).unwrap();
-                    pos = pos + PacketParser::run(self, sub_str);
+                    let (r_pos, r_sum) = PacketParser::run(self, sub_str);
+                    pos = pos + r_pos;
+                    end_sum += r_sum;
                     println!("new pos {}", pos);
                     if pos >= end_pos {
                         break;
                     }
                 }
                 self.depth -= 1;
-                return end_pos;
+                return (end_pos, end_sum);
             } else {
                 let sub_packets = PacketParser::read_int(bs, &mut pos, 11);
                 println!("NUMBER_OF_SUB_PACKETS {}", sub_packets);
+                let mut end_sum = 0;
                 for _ in 0..sub_packets {
                     let sub_str = str::from_utf8(&bs[pos..s.len()]).unwrap();
-                    pos = pos + PacketParser::run(self, sub_str);
+                    let (r_pos, r_sum) = PacketParser::run(self, sub_str);
+                    pos = pos + r_pos;
+                    end_sum += r_sum;
                 }
                 self.depth -= 1;
-                return pos;
+                return (pos, end_sum);
             }
         }
     }
 }
 
-fn main() {
-    let content = fs::read_to_string("src/data-real.txt").expect("reading file error");
+fn task(file_name: &str) -> (u32, u32) {
+    let content = fs::read_to_string(file_name).expect("reading file error");
     let str = content.lines().next().unwrap();
     println!("str {}", str);
     // maybe string of bytes b""?
@@ -114,6 +120,63 @@ fn main() {
         ver_sum: 0,
         depth: 0,
     };
-    parser.run(&b_str);
+    let (_, end_sum) = parser.run(&b_str);
     println!("ver_sum {}", parser.ver_sum);
+    println!("end_sum {}", end_sum);
+    return (parser.ver_sum, end_sum);
+}
+
+fn main() {
+    task("src/data21.txt");
+}
+
+
+mod test {
+    use crate::task;
+
+    #[test]
+    fn test01() {
+        let (ver, _) = task("src/data01.txt");
+        assert_eq!(ver, 6);
+    }
+    #[test]
+    fn test02() {
+        let (ver, _) = task("src/data02.txt");
+        assert_eq!(ver, 9);
+    }
+    #[test]
+    fn test03() {
+        let (ver, _) = task("src/data03.txt");
+        assert_eq!(ver, 14);
+    }
+    #[test]
+    fn test11() {
+        let (ver, _) = task("src/data11.txt");
+        assert_eq!(ver, 16);
+    }
+    #[test]
+    fn test12() {
+        let (ver, _) = task("src/data12.txt");
+        assert_eq!(ver, 12);
+    }
+    #[test]
+    fn test13() {
+        let (ver, _) = task("src/data13.txt");
+        assert_eq!(ver, 23);
+    }
+    #[test]
+    fn test14() {
+        let (ver, _) = task("src/data14.txt");
+        assert_eq!(ver, 31);
+    }
+    #[test]
+    fn test21() {
+        let (_, sum) = task("src/data21.txt");
+        assert_eq!(sum, 3);
+    }
+    #[test]
+    fn test22() {
+        let (_, product) = task("src/data22.txt");
+        assert_eq!(product, 54);
+    }
 }
