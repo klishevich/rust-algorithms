@@ -21,6 +21,7 @@ impl PacketParser {
     fn read_move(start: &mut usize, chars: usize) {
         *start += chars;
     }
+
     // DISCUSS!!
     // fn read_str(bytes_str: &[u8], start: &mut usize, chars: usize) -> &str {
     //     let end = *start + chars;
@@ -33,31 +34,56 @@ impl PacketParser {
         match p_type {
             0 => acc_val + new_val,
             1 => acc_val * new_val,
-            2 => if acc_val <= new_val { acc_val } else { new_val },// min
-            3 => if acc_val >= new_val { acc_val } else { new_val },// max
-            5 => if acc_val > new_val { 1 } else { 0 },// greater than
-            6 => if acc_val < new_val { 1 } else { 0 },// less than
-            7 => if acc_val == new_val { 1 } else { 0 },// equal to
-            _ => panic!("not correct type")
+            2 => {
+                if acc_val <= new_val {
+                    acc_val
+                } else {
+                    new_val
+                }
+            } // min
+            3 => {
+                if acc_val >= new_val {
+                    acc_val
+                } else {
+                    new_val
+                }
+            } // max
+            5 => {
+                if acc_val > new_val {
+                    1
+                } else {
+                    0
+                }
+            } // greater than
+            6 => {
+                if acc_val < new_val {
+                    1
+                } else {
+                    0
+                }
+            } // less than
+            7 => {
+                if acc_val == new_val {
+                    1
+                } else {
+                    0
+                }
+            } // equal to
+            _ => panic!("not correct type"),
         }
     }
 
     pub fn run(&mut self, s: &str) -> (usize, u64) {
         self.depth += 1;
         println!("-- PacketParser depth {} --", self.depth);
-        println!("str {}", s);
         let mut pos: usize = 0;
         let bs = s.as_bytes();
         let p_ver = PacketParser::read_int(bs, &mut pos, 3);
-        println!("ver {}", p_ver);
         self.ver_sum += p_ver;
         let p_type = PacketParser::read_int(bs, &mut pos, 3);
-        println!("type {}", p_type);
 
         if p_type == 4 {
-            println!("LITERAL");
             let mut accum_val: String = "".to_string();
-            // LOOP
             loop {
                 let first_bit = PacketParser::read_int(bs, &mut pos, 1);
                 accum_val += str::from_utf8(&bs[pos..pos + 4]).unwrap();
@@ -67,21 +93,17 @@ impl PacketParser {
                 }
             }
 
-            // println!("literal end pos {}, accum_val {}", pos, accum_val);
             let val = u64::from_str_radix(&accum_val, 2).unwrap();
-            println!("val {}", val);
             self.depth -= 1;
             return (pos, val);
         } else {
             let length_id = PacketParser::read_int(bs, &mut pos, 1);
             if length_id == 0 {
-                let bits_in_sub_packets: usize = PacketParser::read_int(bs, &mut pos, 15).try_into().unwrap();
-                println!("BITS_IN_SUB_PACKETS {}", bits_in_sub_packets);
+                let bits_in_sub_packets: usize =
+                    PacketParser::read_int(bs, &mut pos, 15).try_into().unwrap();
                 let end_pos = pos + bits_in_sub_packets;
-                println!("end_pos {}", end_pos);
                 let mut end_acc_val = u64::MAX;
                 loop {
-                    println!("-loop depth {}", self.depth);
                     let sub_str = str::from_utf8(&bs[pos..s.len()]).unwrap();
                     let (r_pos, r_val) = PacketParser::run(self, sub_str);
                     pos = pos + r_pos;
@@ -90,7 +112,6 @@ impl PacketParser {
                     } else {
                         end_acc_val = PacketParser::update_res(end_acc_val, r_val, p_type);
                     }
-                    println!("new pos {}", pos);
                     if pos >= end_pos {
                         break;
                     }
@@ -98,10 +119,9 @@ impl PacketParser {
                 self.depth -= 1;
                 return (end_pos, end_acc_val);
             } else {
-                let sub_packets = PacketParser::read_int(bs, &mut pos, 11);
-                println!("NUMBER_OF_SUB_PACKETS {}", sub_packets);
+                let number_of_sub_packets = PacketParser::read_int(bs, &mut pos, 11);
                 let mut end_acc_val = u64::MAX;
-                for _ in 0..sub_packets {
+                for _ in 0..number_of_sub_packets {
                     let sub_str = str::from_utf8(&bs[pos..s.len()]).unwrap();
                     let (r_pos, r_val) = PacketParser::run(self, sub_str);
                     pos = pos + r_pos;
@@ -133,7 +153,6 @@ fn task(file_name: &str) -> (u32, u64) {
             b_str2 += "0";
         }
         b_str2 += &b;
-        // println!("b_str2 {}", b_str2);
         b_str += &b_str2;
     }
 
@@ -151,83 +170,5 @@ fn main() {
     task("src/data-real.txt");
 }
 
-
-mod test {
-    use crate::task;
-
-    #[test]
-    fn test01() {
-        let (ver, _) = task("src/data01.txt");
-        assert_eq!(ver, 6);
-    }
-    #[test]
-    fn test02() {
-        let (ver, _) = task("src/data02.txt");
-        assert_eq!(ver, 9);
-    }
-    #[test]
-    fn test03() {
-        let (ver, _) = task("src/data03.txt");
-        assert_eq!(ver, 14);
-    }
-    #[test]
-    fn test11() {
-        let (ver, _) = task("src/data11.txt");
-        assert_eq!(ver, 16);
-    }
-    #[test]
-    fn test12() {
-        let (ver, _) = task("src/data12.txt");
-        assert_eq!(ver, 12);
-    }
-    #[test]
-    fn test13() {
-        let (ver, _) = task("src/data13.txt");
-        assert_eq!(ver, 23);
-    }
-    #[test]
-    fn test14() {
-        let (ver, _) = task("src/data14.txt");
-        assert_eq!(ver, 31);
-    }
-    #[test]
-    fn test21() {
-        let (_, sum) = task("src/data21.txt");
-        assert_eq!(sum, 3);
-    }
-    #[test]
-    fn test22() {
-        let (_, product) = task("src/data22.txt");
-        assert_eq!(product, 54);
-    }
-    #[test]
-    fn test23() {
-        let (_, product) = task("src/data23.txt");
-        assert_eq!(product, 7);
-    }
-    #[test]
-    fn test24() {
-        let (_, product) = task("src/data24.txt");
-        assert_eq!(product, 9);
-    }
-    #[test]
-    fn test25() {
-        let (_, product) = task("src/data25.txt");
-        assert_eq!(product, 1);
-    }
-    #[test]
-    fn test26() {
-        let (_, product) = task("src/data26.txt");
-        assert_eq!(product, 0);
-    }
-    #[test]
-    fn test27() {
-        let (_, product) = task("src/data27.txt");
-        assert_eq!(product, 0);
-    }
-    #[test]
-    fn test28() {
-        let (_, product) = task("src/data28.txt");
-        assert_eq!(product, 1);
-    }
-}
+#[cfg(test)]
+mod test;
