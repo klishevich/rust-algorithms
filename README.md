@@ -37,6 +37,16 @@ let val: usize = usize::try_from(ch.to_digit(10).unwrap()).unwrap();
 let start_val: i32 = ch.to_digit(10).unwrap().try_into().unwrap();
 ```
 
+### Binary number formatting
+
+```rust
+let a = i64::from_str_radix(&c.to_string(), 16).unwrap();
+// BINARY NUMBER FORMATTING
+let b = format!("{a:b}");
+let b = format!("{:0>4}", a);
+let b = format!("{:04b}", a);
+```
+
 ## install crate
 
 add to Cargo.toml file 

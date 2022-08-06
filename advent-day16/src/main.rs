@@ -133,18 +133,12 @@ impl PParser {
 fn task(file_name: &str) -> (u32, u64) {
     let content = fs::read_to_string(file_name).expect("reading file error");
     let str = content.lines().next().unwrap();
-    // maybe string of bytes b""?
     let mut b_str = "".to_string();
     for c in str.chars() {
         let a = i64::from_str_radix(&c.to_string(), 16).unwrap();
-        let b = format!("{a:b}");
-        let mut b_str2 = "".to_string();
-        let add_zeroes = 4 - b.chars().count();
-        for _a in 0..add_zeroes {
-            b_str2 += "0";
-        }
-        b_str2 += &b;
-        b_str += &b_str2;
+        // BINARY NUMBER FORMATTING
+        let b = format!("{:04b}", a);
+        b_str += &b;
     }
 
     let mut parser = PParser {
