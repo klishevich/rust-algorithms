@@ -29,7 +29,20 @@ impl PacketParser {
     //     return str;
     // }
 
-    pub fn run(&mut self, s: &str) -> (usize, u32) {
+    fn update_res(acc_val: u64, new_val: u64, p_type: u32) -> u64 {
+        match p_type {
+            0 => acc_val + new_val,
+            1 => acc_val * new_val,
+            2 => if acc_val <= new_val { acc_val } else { new_val },// min
+            3 => if acc_val >= new_val { acc_val } else { new_val },// max
+            5 => if acc_val > new_val { 1 } else { 0 },// greater than
+            6 => if acc_val < new_val { 1 } else { 0 },// less than
+            7 => if acc_val == new_val { 1 } else { 0 },// equal to
+            _ => panic!("not correct type")
+        }
+    }
+
+    pub fn run(&mut self, s: &str) -> (usize, u64) {
         self.depth += 1;
         println!("-- PacketParser depth {} --", self.depth);
         println!("str {}", s);
@@ -55,7 +68,7 @@ impl PacketParser {
             }
 
             // println!("literal end pos {}, accum_val {}", pos, accum_val);
-            let val = u32::from_str_radix(&accum_val, 2).unwrap();
+            let val = u64::from_str_radix(&accum_val, 2).unwrap();
             println!("val {}", val);
             self.depth -= 1;
             return (pos, val);
@@ -66,38 +79,46 @@ impl PacketParser {
                 println!("BITS_IN_SUB_PACKETS {}", bits_in_sub_packets);
                 let end_pos = pos + bits_in_sub_packets;
                 println!("end_pos {}", end_pos);
-                let mut end_sum = 0;
+                let mut end_acc_val = u64::MAX;
                 loop {
                     println!("-loop depth {}", self.depth);
                     let sub_str = str::from_utf8(&bs[pos..s.len()]).unwrap();
-                    let (r_pos, r_sum) = PacketParser::run(self, sub_str);
+                    let (r_pos, r_val) = PacketParser::run(self, sub_str);
                     pos = pos + r_pos;
-                    end_sum += r_sum;
+                    if end_acc_val == u64::MAX {
+                        end_acc_val = r_val
+                    } else {
+                        end_acc_val = PacketParser::update_res(end_acc_val, r_val, p_type);
+                    }
                     println!("new pos {}", pos);
                     if pos >= end_pos {
                         break;
                     }
                 }
                 self.depth -= 1;
-                return (end_pos, end_sum);
+                return (end_pos, end_acc_val);
             } else {
                 let sub_packets = PacketParser::read_int(bs, &mut pos, 11);
                 println!("NUMBER_OF_SUB_PACKETS {}", sub_packets);
-                let mut end_sum = 0;
+                let mut end_acc_val = u64::MAX;
                 for _ in 0..sub_packets {
                     let sub_str = str::from_utf8(&bs[pos..s.len()]).unwrap();
-                    let (r_pos, r_sum) = PacketParser::run(self, sub_str);
+                    let (r_pos, r_val) = PacketParser::run(self, sub_str);
                     pos = pos + r_pos;
-                    end_sum += r_sum;
+                    if end_acc_val == u64::MAX {
+                        end_acc_val = r_val
+                    } else {
+                        end_acc_val = PacketParser::update_res(end_acc_val, r_val, p_type);
+                    }
                 }
                 self.depth -= 1;
-                return (pos, end_sum);
+                return (pos, end_acc_val);
             }
         }
     }
 }
 
-fn task(file_name: &str) -> (u32, u32) {
+fn task(file_name: &str) -> (u32, u64) {
     let content = fs::read_to_string(file_name).expect("reading file error");
     let str = content.lines().next().unwrap();
     println!("str {}", str);
@@ -120,14 +141,14 @@ fn task(file_name: &str) -> (u32, u32) {
         ver_sum: 0,
         depth: 0,
     };
-    let (_, end_sum) = parser.run(&b_str);
+    let (_, end_val) = parser.run(&b_str);
     println!("ver_sum {}", parser.ver_sum);
-    println!("end_sum {}", end_sum);
-    return (parser.ver_sum, end_sum);
+    println!("end_val {}", end_val);
+    return (parser.ver_sum, end_val);
 }
 
 fn main() {
-    task("src/data21.txt");
+    task("src/data-real.txt");
 }
 
 
@@ -178,5 +199,35 @@ mod test {
     fn test22() {
         let (_, product) = task("src/data22.txt");
         assert_eq!(product, 54);
+    }
+    #[test]
+    fn test23() {
+        let (_, product) = task("src/data23.txt");
+        assert_eq!(product, 7);
+    }
+    #[test]
+    fn test24() {
+        let (_, product) = task("src/data24.txt");
+        assert_eq!(product, 9);
+    }
+    #[test]
+    fn test25() {
+        let (_, product) = task("src/data25.txt");
+        assert_eq!(product, 1);
+    }
+    #[test]
+    fn test26() {
+        let (_, product) = task("src/data26.txt");
+        assert_eq!(product, 0);
+    }
+    #[test]
+    fn test27() {
+        let (_, product) = task("src/data27.txt");
+        assert_eq!(product, 0);
+    }
+    #[test]
+    fn test28() {
+        let (_, product) = task("src/data28.txt");
+        assert_eq!(product, 1);
     }
 }
