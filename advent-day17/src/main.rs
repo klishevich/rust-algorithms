@@ -154,9 +154,8 @@ fn part2() {
     println!("valid_x_steps {:?}", valid_x_steps);
     println!("infinitely_valid_x_steps {:?}", infinitely_valid_x_steps);
 
-    let mut res: Vec<(i32, i32)> = Vec::new();
     // HASH SET
-    // let mut res: HashSet<String> = HashSet::new();
+    let mut res: HashSet<String> = HashSet::new();
 
     for (v_y, steps) in valid_v_y_vec {
         for step in steps {
@@ -164,24 +163,18 @@ fn part2() {
             match v_x_vec_opt {
                 Some(v_x_vec) => {
                     for v_x in v_x_vec {
-                        // res.insert(v_x.to_string() + "_" + &v_y.to_string());
-                        res.push((*v_x, v_y));
+                        res.insert(v_x.to_string() + "_" + &v_y.to_string());
                     }
                 }
                 None => ()
             };
             for v_x2 in &infinitely_valid_x_steps {
                 if step > *v_x2 {
-                    // res.insert(v_x2.to_string() + "_" + &v_y.to_string());
-                    res.push((*v_x2, v_y));
+                    res.insert(v_x2.to_string() + "_" + &v_y.to_string());
                 }
             }
         }
     }
-
-    println!("res {:?}", res);
-    res.sort_by(|a, b| a.cmp(b));
-    println!("sorted {:?}", res);
 
     println!("res {}", res.len());
 }
