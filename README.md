@@ -15,6 +15,10 @@ cargo new --vcs=none advent-day8
 
 `cargo test`
 
+## Clippy
+
+`cargo clippy`
+
 ## Debug errors
 
 `RUST_BACKTRACE=1 cargo run`

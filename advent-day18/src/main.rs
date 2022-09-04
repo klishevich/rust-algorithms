@@ -1,38 +1,72 @@
+use std::cmp;
 use std::str;
 
 struct SnailfishNumber {
     left: Link,
     right: Link,
-    left_val: i32,
-    right_val: i32,
+    val: i32,
+    pub depth: i32,
 }
 
 type Link = Option<Box<SnailfishNumber>>;
 
-// impl SnailfishNumber {
-//     pub fn create(&mut self, &str) {
-
-//     }
-// }
-
-// type BStr<'a> = (&'a [u8], usize);
-
 // SPLIT STRING ARRAY OF BYTES
-fn split_num(s_val: &[u8]) -> (&[u8], &[u8]) {
+fn split_num(s_val: &[u8]) -> Option<(&[u8], &[u8])> {
     // let (s_val, s_size) = s;
     let mut braces_cnt = 0;
     for (i, c) in s_val.iter().enumerate() {
         if *c == ',' as u8 && braces_cnt == 1 {
             let left = &s_val[1..i];
             let right = &s_val[i + 1..s_val.len() - 1];
-            return (&left, &right);
+            return Some((&left, &right));
         } else if *c == '[' as u8 {
             braces_cnt += 1;
         } else if *c == ']' as u8 {
             braces_cnt -= 1;
         }
     }
-    panic!("String is not correct");
+    return None;
+}
+
+impl Default for SnailfishNumber {
+    fn default() -> Self {
+        SnailfishNumber {
+            left: None,
+            right: None,
+            val: -1,
+            depth: -1,
+        }
+    }
+}
+
+impl SnailfishNumber {
+    pub fn create(&mut self, s_val: &[u8]) -> &SnailfishNumber {
+        let split = split_num(s_val);
+        match split {
+            Some((left, right)) => {
+                let mut left_snailfish = SnailfishNumber {
+                    ..Default::default()
+                };
+                left_snailfish.create(left);
+                let mut right_snailfish = SnailfishNumber {
+                    ..Default::default()
+                };
+                right_snailfish.create(right);
+                self.depth = cmp::max(left_snailfish.depth, right_snailfish.depth) + 1;
+                self.val = -1;
+                self.left = Some(Box::new(left_snailfish));
+                self.right = Some(Box::new(right_snailfish));
+                return self;
+            }
+            None => {
+                self.depth = 0;
+                self.val = str::from_utf8(s_val).unwrap().parse().unwrap();
+                self.left = None;
+                self.right = None;
+                return self;
+            }
+        }
+    }
 }
 
 fn explode(num: &str) -> String {
@@ -44,16 +78,22 @@ fn explode(num: &str) -> String {
 
 fn main() {
     println!("Hello, world!");
+    let mut snailfish = SnailfishNumber {
+        ..Default::default()
+    };
+    let res = snailfish.create(b"[[[[[9,8],1],2],3],4]");
+    println!("Depth {}", res.depth);
 }
 
 mod test {
+    use std::str;
     use crate::explode;
     use crate::split_num;
-    use std::str;
+    use crate::SnailfishNumber;
 
     #[test]
     fn split_num_test() {
-        let (left, right) = split_num(b"[[[[[9,8],1],2],3],4]");
+        let (left, right) = split_num(b"[[[[[9,8],1],2],3],4]").unwrap();
         // CONVERT u8 ARRAY TO STR
         let left_str = str::from_utf8(left).unwrap();
         println!("{}", left_str);
@@ -64,9 +104,36 @@ mod test {
     }
     #[test]
     fn split_num_test1() {
-        let (left, right) = split_num(b"[4,[[[[9,8],1],2],3]]");
+        let (left, right) = split_num(b"[4,[[[[9,8],1],2],3]]").unwrap();
         assert_eq!(left, b"4");
         assert_eq!(right, b"[[[[9,8],1],2],3]");
+    }
+
+    #[test]
+    fn snailfish_number_depth_test() {
+        let mut snailfish = SnailfishNumber {
+            ..Default::default()
+        };
+        let res = snailfish.create(b"[1,2]");
+        assert_eq!(res.depth, 1);
+    }
+
+    #[test]
+    fn snailfish_number_depth_test1() {
+        let mut snailfish = SnailfishNumber {
+            ..Default::default()
+        };
+        let res = snailfish.create(b"[1,[2,3]]");
+        assert_eq!(res.depth, 2);
+    }
+
+    #[test]
+    fn snailfish_number_depth_test2() {
+        let mut snailfish = SnailfishNumber {
+            ..Default::default()
+        };
+        let res = snailfish.create(b"[[[[0,9],2],3],[4,5]]");
+        assert_eq!(res.depth, 4);
     }
 
     #[test]
