@@ -1,6 +1,6 @@
 use std::cmp;
-use std::str;
 use std::collections::HashMap;
+use std::str;
 
 const BASE2: i32 = 2;
 
@@ -73,19 +73,67 @@ impl SnailfishNumber {
     }
 
     // REFERENCE TO MUTABLE DATA
-    pub fn print(&mut self, mut res_map: &mut PrintMap, total_depth: u32, cur_position: u32) -> () {
-        let relative_depth = total_depth - self.depth;
-        let prt_val: char = if self.depth == 0 { self.val as char } else { '*' };
-        res_map.entry(relative_depth).or_default().push((cur_position, prt_val));
-        if self.depth > 0 {
-            let shift = BASE2.pow(self.depth - 1) as u32;
-            println!("total_depth {} relative_depth {} shift {}", total_depth, relative_depth, shift);
+    /**
+     * Updates res_map
+     */
+    pub fn get_print_data(
+        &self,
+        mut print_data_out: &mut PrintMap,
+        total_depth: u32,
+        cur_depth: u32,
+        cur_position: u32,
+    ) -> () {
+        println!(
+            "cur_depth {} self.depth {} cur_position {}",
+            cur_depth, self.depth, cur_position
+        );
+        let prt_val: char = if !self.has_child() {
+            (self.val + 48) as char
+        } else {
+            '*'
+        };
+        println!("prt_val {}", prt_val);
+        print_data_out
+            .entry(cur_depth)
+            .or_default()
+            .push((cur_position, prt_val));
+        if self.has_child() {
+            let shift = BASE2.pow(total_depth - cur_depth - 1) as u32;
+            println!("shift {}", shift);
             let left_position = cur_position - shift;
-            let left_ref = self.left.as_mut().unwrap();
-            left_ref.print(&mut res_map, total_depth, left_position);
+            let left_ref = self.left.as_ref().unwrap();
+            left_ref.get_print_data(
+                &mut print_data_out,
+                total_depth,
+                cur_depth + 1,
+                left_position,
+            );
             let right_position = cur_position + shift;
-            let right_ref = self.right.as_mut().unwrap();
-            right_ref.print(&mut res_map, total_depth, right_position);
+            let right_ref = self.right.as_ref().unwrap();
+            right_ref.get_print_data(
+                &mut print_data_out,
+                total_depth,
+                cur_depth + 1,
+                right_position,
+            );
+        }
+    }
+
+    fn has_child(&self) -> bool {
+        self.depth != 0
+    }
+
+    pub fn print(data: &PrintMap, depth: u32) {
+        for i in 0..depth + 1 {
+            let vertices_vec = data.get(&i).unwrap();
+            let mut prev: u32 = 0;
+            for (pos, val) in vertices_vec {
+                let spaces: usize = (*pos - prev - 1) as usize;
+                print!("{: <1$}", "", spaces);
+                prev = *pos;
+                print!("{}", val);
+            }
+            println!();
         }
     }
 }
@@ -101,25 +149,22 @@ fn main() {
     let mut snailfish = SnailfishNumber {
         ..Default::default()
     };
-    // let res = snailfish.create(b"[[[[[9,8],1],2],3],4]");
+    let res = snailfish.create(b"[[[[[9,8],1],2],3],4]");
     // let res = snailfish.create(b"[1,2]");
-    let res = snailfish.create(b"[1,[2,3]]");
+    // let res = snailfish.create(b"[1,[2,3]]");
     let depth = res.depth;
     println!("Depth {}", depth);
-    let mut res_map: PrintMap = HashMap::new();
+    let mut print_data_map: PrintMap = HashMap::new();
     let position = BASE2.pow(depth) as u32;
-    snailfish.print(&mut res_map, depth, position);
-    for i in 0..depth+1 {
-        let m = res_map.get(&i).unwrap();
-        println!("{:?}", m);
-    }
+    snailfish.get_print_data(&mut print_data_map, depth, 0, position);
+    SnailfishNumber::print(&print_data_map, depth);
 }
 
 mod test {
-    use std::str;
     use crate::explode;
     use crate::split_num;
     use crate::SnailfishNumber;
+    use std::str;
 
     #[test]
     fn split_num_test() {
