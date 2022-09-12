@@ -9,6 +9,7 @@ struct SnailfishNumber {
     right: Link,
     val: u8,
     pub depth: u32,
+    pub need_split: bool
 }
 
 type Link = Option<Box<SnailfishNumber>>;
@@ -39,6 +40,7 @@ impl Default for SnailfishNumber {
             right: None,
             val: 100,
             depth: 0,
+            need_split: false
         }
     }
 }
@@ -120,7 +122,7 @@ impl SnailfishNumber {
             }
         }
         println!("left_pos_rev_vec {:?}", left_pos_rev_vec);
-        self.explode_update_adjacent(&left_pos_rev_vec, false, left_val);
+        self.explode_update_adjacent(left_pos_rev_vec, false, left_val);
 
         s1 = false;
         let mut right_pos_rev_vec: Vec<u8> = Vec::new();
@@ -135,7 +137,7 @@ impl SnailfishNumber {
             }
         }
         println!("right_pos_rev_vec {:?}", right_pos_rev_vec);
-        self.explode_update_adjacent(&right_pos_rev_vec, true, right_val);
+        self.explode_update_adjacent(right_pos_rev_vec, true, right_val);
 
         return true;
     }
@@ -183,26 +185,30 @@ impl SnailfishNumber {
         }
     }
 
-    fn explode_update_adjacent(&mut self, pos_rev_vec: &Vec<u8>, go_left: bool, val: u8) -> () {
-        let mut snailfish: &mut SnailfishNumber = self;
-        for el in pos_rev_vec.iter().rev() {
-            if *el == 0 {
-                snailfish = snailfish.left.as_mut().unwrap();
+    fn explode_update_adjacent(&mut self, mut pos_rev_vec: Vec<u8>, go_left: bool, val: u8) -> () {
+        let mut go_left_dir = go_left;
+        if pos_rev_vec.len() > 0 {
+            let dir = pos_rev_vec.pop().unwrap();
+            if dir == 0 {
+                go_left_dir = true;
             } else {
-                snailfish = snailfish.right.as_mut().unwrap();
+                go_left_dir = false;
             }
         }
-        let mut has_child = snailfish.has_child();
-        if go_left {
-            while has_child {
-                snailfish = snailfish.left.as_mut().unwrap();
+        let snailfish_opt = self.get_child(go_left_dir);
+        match snailfish_opt {
+            Some(snailfish) => {
+                snailfish.explode_update_adjacent(pos_rev_vec, go_left, val);
+                self.need_split = self.left.as_ref().unwrap().need_split || self.right.as_ref().unwrap().need_split;
             }
-        } else {
-            while has_child {
-                snailfish = snailfish.right.as_mut().unwrap();
+            None => {
+                self.val = self.val + val;
+                if self.val > 9 {
+                    self.need_split = true;
+                }
             }
         }
-        snailfish.val = snailfish.val + val;
+        println!("depth {} need_split {}", self.depth, self.need_split);
     }
 
     // REFERENCE TO MUTABLE DATA
@@ -219,7 +225,11 @@ impl SnailfishNumber {
         //     cur_depth, self.depth, cur_position
         // );
         let prt_val: char = if !self.has_child() {
-            (self.val + 48) as char
+            if self.val <= 9 {
+                (self.val + 48) as char
+            } else {
+                (self.val - 10 + 97) as char
+            }
         } else {
             '*'
         };
@@ -254,6 +264,14 @@ impl SnailfishNumber {
     fn has_child(&self) -> bool {
         self.depth != 0
     }
+
+    fn get_child(&mut self, go_left: bool) -> Option<&mut Box<SnailfishNumber>> {
+        if go_left {
+            return self.left.as_mut();
+        } else {
+            return self.right.as_mut();
+        }
+    }
 }
 
 fn main() {
@@ -263,8 +281,12 @@ fn main() {
     // let res = snailfish.create(b"[1,2]");
     // let res = snailfish.create(b"[1,[2,3]]");
     // let res = snailfish.create(b"[[[[[9,8],1],2],3],4]");
-    snailfish.create(b"[[6,[5,[4,[3,2]]]],1]");
-    // let res = snailfish.create(b"[[6,[5,[7,0]]],3]");
+    
+    // TEST 1 explode
+    // snailfish.create(b"[[6,[5,[4,[3,2]]]],1]");
+
+    // TEST 2 split
+    snailfish.create(b"[[6,[5,[4,[5,9]]]],1]");
 
     let position = BASE2.pow(snailfish.depth) as u32;
 
