@@ -110,34 +110,42 @@ impl SnailfishNumber {
         println!("{:?}", pos_vec);
 
         let mut left_pos_rev_vec: Vec<u8> = Vec::new();
-        let mut s1 = false;
-        for el in pos_vec.iter().rev() {
-            if s1 == false {
-                if *el == 1 {
-                    left_pos_rev_vec.push(0);
-                    s1 = true;
+        {
+            let mut s1 = false;
+            for el in pos_vec.iter().rev() {
+                if s1 == false {
+                    if *el == 1 {
+                        left_pos_rev_vec.push(0);
+                        s1 = true;
+                    }
+                } else {
+                    left_pos_rev_vec.push(*el);
                 }
-            } else {
-                left_pos_rev_vec.push(*el);
+            }
+            println!("left_pos_rev_vec {:?}", left_pos_rev_vec);
+            if left_pos_rev_vec.len() > 0 {
+                self.explode_update_adjacent(left_pos_rev_vec, false, left_val);
             }
         }
-        println!("left_pos_rev_vec {:?}", left_pos_rev_vec);
-        self.explode_update_adjacent(left_pos_rev_vec, false, left_val);
 
-        s1 = false;
         let mut right_pos_rev_vec: Vec<u8> = Vec::new();
-        for el in pos_vec.iter().rev() {
-            if s1 == false {
-                if *el == 0 {
-                    right_pos_rev_vec.push(1);
-                    s1 = true;
+        {
+            let mut s1 = false;
+            for el in pos_vec.iter().rev() {
+                if s1 == false {
+                    if *el == 0 {
+                        right_pos_rev_vec.push(1);
+                        s1 = true;
+                    }
+                } else {
+                    right_pos_rev_vec.push(*el);
                 }
-            } else {
-                right_pos_rev_vec.push(*el);
+            }
+            println!("right_pos_rev_vec {:?}", right_pos_rev_vec);
+            if right_pos_rev_vec.len() > 0 {
+                self.explode_update_adjacent(right_pos_rev_vec, true, right_val);
             }
         }
-        println!("right_pos_rev_vec {:?}", right_pos_rev_vec);
-        self.explode_update_adjacent(right_pos_rev_vec, true, right_val);
 
         return true;
     }
@@ -281,12 +289,8 @@ fn main() {
     // let res = snailfish.create(b"[1,2]");
     // let res = snailfish.create(b"[1,[2,3]]");
     // let res = snailfish.create(b"[[[[[9,8],1],2],3],4]");
-    
-    // TEST 1 explode
-    // snailfish.create(b"[[6,[5,[4,[3,2]]]],1]");
 
-    // TEST 2 split
-    snailfish.create(b"[[6,[5,[4,[5,9]]]],1]");
+    snailfish.create(b"[[3,[2,[1,[7,3]]]],[6,[5,[4,[3,2]]]]]");
 
     let position = BASE2.pow(snailfish.depth) as u32;
 
@@ -308,6 +312,10 @@ mod test {
     use crate::split_num;
     use crate::SnailfishNumber;
     use std::str;
+    use std::collections::HashMap;
+    use crate::PrintMap;
+
+    const BASE2: i32 = 2;
 
     #[test]
     fn split_num_test() {
@@ -355,9 +363,130 @@ mod test {
     }
 
     #[test]
-    fn explode_test() {
-        // TODO
-        // assert_eq!(explode("1"), "test1");
-        // assert_eq!(explode("[[[[[9,8],1],2],3],4]"), "[[[[0,9],2],3],4]");
+    fn explode_test1() {
+        let initial_val = b"[[[[[9,8],1],2],3],4]";
+        let expected_exploded_val = b"[[[[0,9],2],3],4]";
+        let mut snailfish = SnailfishNumber {
+            ..Default::default()
+        };
+        snailfish.create(initial_val);
+        assert_eq!(snailfish.depth, 5);
+        snailfish.explode();
+        let depth = snailfish.depth;
+        assert_eq!(depth, 4);
+        let mut print_data_map: PrintMap = HashMap::new();
+        let position = BASE2.pow(snailfish.depth) as u32;
+        snailfish.get_print_data(&mut print_data_map, depth, 0, position);
+        let mut snailfish2 = SnailfishNumber {
+            ..Default::default()
+        };
+        snailfish2.create(expected_exploded_val);
+        let depth2 = snailfish2.depth;
+        assert_eq!(depth2, 4);
+        let mut print_data_map2: PrintMap = HashMap::new();
+        snailfish2.get_print_data(&mut print_data_map2, depth2, 0, position);
+        assert_eq!(print_data_map, print_data_map2);
+    }
+
+    #[test]
+    fn explode_test2() {
+        let initial_val = b"[7,[6,[5,[4,[3,2]]]]]";
+        let expected_exploded_val = b"[7,[6,[5,[7,0]]]]";
+        let mut snailfish = SnailfishNumber {
+            ..Default::default()
+        };
+        snailfish.create(initial_val);
+        assert_eq!(snailfish.depth, 5);
+        snailfish.explode();
+        let depth = snailfish.depth;
+        assert_eq!(depth, 4);
+        let mut print_data_map: PrintMap = HashMap::new();
+        let position = BASE2.pow(snailfish.depth) as u32;
+        snailfish.get_print_data(&mut print_data_map, depth, 0, position);
+        let mut snailfish2 = SnailfishNumber {
+            ..Default::default()
+        };
+        snailfish2.create(expected_exploded_val);
+        let depth2 = snailfish2.depth;
+        assert_eq!(depth2, 4);
+        let mut print_data_map2: PrintMap = HashMap::new();
+        snailfish2.get_print_data(&mut print_data_map2, depth2, 0, position);
+        assert_eq!(print_data_map, print_data_map2);
+    }
+
+    #[test]
+    fn explode_test3() {
+        let initial_val = b"[[6,[5,[4,[3,2]]]],1]";
+        let expected_exploded_val = b"[[6,[5,[7,0]]],3]";
+        let mut snailfish = SnailfishNumber {
+            ..Default::default()
+        };
+        snailfish.create(initial_val);
+        assert_eq!(snailfish.depth, 5);
+        snailfish.explode();
+        let depth = snailfish.depth;
+        assert_eq!(depth, 4);
+        let mut print_data_map: PrintMap = HashMap::new();
+        let position = BASE2.pow(snailfish.depth) as u32;
+        snailfish.get_print_data(&mut print_data_map, depth, 0, position);
+        let mut snailfish2 = SnailfishNumber {
+            ..Default::default()
+        };
+        snailfish2.create(expected_exploded_val);
+        let depth2 = snailfish2.depth;
+        assert_eq!(depth2, 4);
+        let mut print_data_map2: PrintMap = HashMap::new();
+        snailfish2.get_print_data(&mut print_data_map2, depth2, 0, position);
+        assert_eq!(print_data_map, print_data_map2);
+    }
+
+    #[test]
+    fn explode_test4() {
+        let initial_val = b"[[3,[2,[1,[7,3]]]],[6,[5,[4,[3,2]]]]]";
+        let expected_exploded_val = b"[[3,[2,[8,0]]],[9,[5,[4,[3,2]]]]]";
+        let mut snailfish = SnailfishNumber {
+            ..Default::default()
+        };
+        snailfish.create(initial_val);
+        assert_eq!(snailfish.depth, 5);
+        snailfish.explode();
+        let depth = snailfish.depth;
+        let mut print_data_map: PrintMap = HashMap::new();
+        let position = BASE2.pow(snailfish.depth) as u32;
+        snailfish.get_print_data(&mut print_data_map, depth, 0, position);
+        let mut snailfish2 = SnailfishNumber {
+            ..Default::default()
+        };
+        snailfish2.create(expected_exploded_val);
+        let depth2 = snailfish2.depth;
+        assert_eq!(depth2, depth);
+        let mut print_data_map2: PrintMap = HashMap::new();
+        snailfish2.get_print_data(&mut print_data_map2, depth2, 0, position);
+        assert_eq!(print_data_map, print_data_map2);
+    }
+
+    #[test]
+    fn explode_test5() {
+        let initial_val = b"[[3,[2,[8,0]]],[9,[5,[4,[3,2]]]]]";
+        let expected_exploded_val = b"[[3,[2,[8,0]]],[9,[5,[7,0]]]]";
+        let mut snailfish = SnailfishNumber {
+            ..Default::default()
+        };
+        snailfish.create(initial_val);
+        assert_eq!(snailfish.depth, 5);
+        snailfish.explode();
+        let depth = snailfish.depth;
+        let mut print_data_map: PrintMap = HashMap::new();
+        let position = BASE2.pow(snailfish.depth) as u32;
+        snailfish.get_print_data(&mut print_data_map, depth, 0, position);
+        let mut snailfish2 = SnailfishNumber {
+            ..Default::default()
+        };
+        snailfish2.create(expected_exploded_val);
+        let depth2 = snailfish2.depth;
+        assert_eq!(depth2, depth);
+        let mut print_data_map2: PrintMap = HashMap::new();
+        snailfish2.get_print_data(&mut print_data_map2, depth2, 0, position);
+        assert_eq!(print_data_map, print_data_map2);
     }
 }
