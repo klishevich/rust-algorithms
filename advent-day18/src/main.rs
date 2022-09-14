@@ -9,7 +9,7 @@ struct SnailfishNumber {
     right: Link,
     val: u8,
     pub depth: u32,
-    pub need_split: bool
+    pub need_split: bool,
 }
 
 type Link = Option<Box<SnailfishNumber>>;
@@ -40,7 +40,7 @@ impl Default for SnailfishNumber {
             right: None,
             val: 100,
             depth: 0,
-            need_split: false
+            need_split: false,
         }
     }
 }
@@ -63,8 +63,7 @@ impl SnailfishNumber {
 
     // INSTANCE METHODS
     pub fn create(&mut self, s_val: &[u8]) -> &SnailfishNumber {
-        let split = split_num(s_val);
-        match split {
+        match split_num(s_val) {
             Some((left, right)) => {
                 let mut left_snailfish = SnailfishNumber {
                     ..Default::default()
@@ -76,7 +75,7 @@ impl SnailfishNumber {
                 right_snailfish.create(right);
                 // COMPARE CMP MIN MAX
                 self.depth = cmp::max(left_snailfish.depth, right_snailfish.depth) + 1;
-                self.val = 100;
+                self.need_split = left_snailfish.need_split || right_snailfish.need_split;
                 self.left = Some(Box::new(left_snailfish));
                 self.right = Some(Box::new(right_snailfish));
                 return self;
@@ -84,6 +83,7 @@ impl SnailfishNumber {
             None => {
                 self.depth = 0;
                 self.val = str::from_utf8(s_val).unwrap().parse().unwrap();
+                self.need_split = self.val >= 10;
                 self.left = None;
                 self.right = None;
                 return self;
@@ -207,7 +207,8 @@ impl SnailfishNumber {
         match snailfish_opt {
             Some(snailfish) => {
                 snailfish.explode_update_adjacent(pos_rev_vec, go_left, val);
-                self.need_split = self.left.as_ref().unwrap().need_split || self.right.as_ref().unwrap().need_split;
+                self.need_split = self.left.as_ref().unwrap().need_split
+                    || self.right.as_ref().unwrap().need_split;
             }
             None => {
                 self.val = self.val + val;
@@ -217,6 +218,55 @@ impl SnailfishNumber {
             }
         }
         println!("depth {} need_split {}", self.depth, self.need_split);
+    }
+
+    pub fn split(&mut self) -> bool {
+        if self.need_split == false {
+            return false;
+        }
+
+        if self.depth == 0 {
+            if self.val < 10 {
+                panic!("something went wrong in split");
+            } else {
+                let left_val = ((self.val as f32) / 2.0).floor() as u8;
+                println!("left_val {}", left_val);
+                let need_split_left = left_val >= 10;
+                let right_val = ((self.val as f32) / 2.0).ceil() as u8;
+                println!("right_val {}", right_val);
+                let need_split_right =  right_val >= 10;
+                let left_snailfish: SnailfishNumber = SnailfishNumber {
+                    left: None,
+                    right: None,
+                    val: left_val,
+                    depth: 0,
+                    need_split: need_split_left,
+                };
+                let right_snailfish: SnailfishNumber = SnailfishNumber {
+                    left: None,
+                    right: None,
+                    val: right_val,
+                    depth: 0,
+                    need_split: need_split_right,
+                };
+                self.left = Some(Box::new(left_snailfish));
+                self.right = Some(Box::new(right_snailfish));
+                self.val = 0;
+                self.depth = 1;
+                self.need_split = need_split_left || need_split_right;
+            }
+        } else {
+            let child: &mut Box<SnailfishNumber>;
+            if self.left.as_ref().unwrap().need_split {
+                child = self.left.as_mut().unwrap();
+            } else {
+                child = self.right.as_mut().unwrap();
+            }
+            child.split();
+            self.depth = cmp::max(self.left.as_ref().unwrap().depth, self.right.as_ref().unwrap().depth) + 1;
+            self.need_split = self.left.as_ref().unwrap().need_split || self.right.as_ref().unwrap().need_split;
+        }
+        return true;
     }
 
     // REFERENCE TO MUTABLE DATA
@@ -286,12 +336,26 @@ fn main() {
     let mut snailfish = SnailfishNumber {
         ..Default::default()
     };
-    // let res = snailfish.create(b"[1,2]");
-    // let res = snailfish.create(b"[1,[2,3]]");
-    // let res = snailfish.create(b"[[[[[9,8],1],2],3],4]");
 
-    snailfish.create(b"[[3,[2,[1,[7,3]]]],[6,[5,[4,[3,2]]]]]");
+    // EXPLODE
+    // snailfish.create(b"[[3,[2,[1,[7,3]]]],[6,[5,[4,[3,2]]]]]");
+    // let position = BASE2.pow(snailfish.depth) as u32;
 
+    // let depth = snailfish.depth;
+    // println!("Depth {}", depth);
+    // let mut print_data_map: PrintMap = HashMap::new();
+    // snailfish.get_print_data(&mut print_data_map, depth, 0, position);
+    // SnailfishNumber::print(&print_data_map, depth);
+
+    // snailfish.explode();
+    // let depth2 = snailfish.depth;
+    // println!("Depth2 {}", depth2);
+    // let mut print_data_map2: PrintMap = HashMap::new();
+    // snailfish.get_print_data(&mut print_data_map2, depth2, 0, position);
+    // SnailfishNumber::print(&print_data_map2, depth2);
+
+    // SPLIT
+    snailfish.create(b"[[[[0,7],4],[15,[0,13]]],[1,1]]"); // expect [[[[0,7],4],[[7,8],[0,13]]],[1,1]]
     let position = BASE2.pow(snailfish.depth) as u32;
 
     let depth = snailfish.depth;
@@ -300,7 +364,7 @@ fn main() {
     snailfish.get_print_data(&mut print_data_map, depth, 0, position);
     SnailfishNumber::print(&print_data_map, depth);
 
-    snailfish.explode();
+    snailfish.split();
     let depth2 = snailfish.depth;
     println!("Depth2 {}", depth2);
     let mut print_data_map2: PrintMap = HashMap::new();
@@ -310,10 +374,10 @@ fn main() {
 
 mod test {
     use crate::split_num;
-    use crate::SnailfishNumber;
-    use std::str;
-    use std::collections::HashMap;
     use crate::PrintMap;
+    use crate::SnailfishNumber;
+    use std::collections::HashMap;
+    use std::str;
 
     const BASE2: i32 = 2;
 
