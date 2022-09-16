@@ -1,5 +1,7 @@
+use core::num;
 use std::cmp;
 use std::collections::HashMap;
+use std::fs;
 use std::str;
 
 const BASE2: i32 = 2;
@@ -99,6 +101,50 @@ impl SnailfishNumber {
         return self;
     }
 
+    // TO DISCUSS!!!
+    pub fn sum2(&mut self, right: SnailfishNumber) -> &SnailfishNumber {
+        let mut left = SnailfishNumber {
+            ..Default::default()
+        };
+        left.depth = self.depth;
+        left.need_split = self.need_split;
+        left.left = self.left.take(); // problem
+        left.right = self.right.take(); // problem
+        left.val = self.val;
+
+        self.depth = cmp::max(left.depth, right.depth) + 1;
+        self.need_split = left.need_split || right.need_split;
+        self.left = Some(Box::new(left));
+        self.right = Some(Box::new(right));
+        return self;
+    }
+
+    pub fn sum_main(&mut self, s1: SnailfishNumber, s2: SnailfishNumber) -> &SnailfishNumber {
+        self.sum(s1, s2);
+        let mut cnt = true;
+        while cnt {
+            cnt = self.explode() || self.split();
+        }
+        return self;
+    }
+
+    pub fn sum2_main(&mut self, right: SnailfishNumber) -> &SnailfishNumber {
+        self.sum2(right);
+        let mut cnt = true;
+        while cnt {
+            cnt = self.explode() || self.split();
+            // if cnt {
+            //     let position = BASE2.pow(self.depth) as u32;
+            //     let depth = self.depth;
+            //     let mut print_data_map: PrintMap = HashMap::new();
+            //     self.get_print_data(&mut print_data_map, depth, 0, position);
+            //     SnailfishNumber::print(&print_data_map, depth);
+            //     println!("Depth {}", depth);
+            // }
+        }
+        return self;
+    }
+
     /**
      * Returns true if exploded
      */
@@ -106,16 +152,17 @@ impl SnailfishNumber {
         if self.depth > 5 {
             panic!("The snailfish number depth can not be more than 5");
         }
-        if self.depth <= 3 {
+        if self.depth <= 4 {
             return false;
         }
+        // println!("--- explode ---");
 
         let mut pos_vec: Vec<u8> = Vec::new();
         let mut left_val: u8 = 100;
         let mut right_val: u8 = 100;
         self.explode_get_position(&mut pos_vec, &mut left_val, &mut right_val);
-        println!("left_val {}, right_val {}", left_val, right_val);
-        println!("{:?}", pos_vec);
+        // println!("left_val {}, right_val {}", left_val, right_val);
+        // println!("{:?}", pos_vec);
 
         let mut left_pos_rev_vec: Vec<u8> = Vec::new();
         {
@@ -130,7 +177,7 @@ impl SnailfishNumber {
                     left_pos_rev_vec.push(*el);
                 }
             }
-            println!("left_pos_rev_vec {:?}", left_pos_rev_vec);
+            // println!("left_pos_rev_vec {:?}", left_pos_rev_vec);
             if left_pos_rev_vec.len() > 0 {
                 self.explode_update_adjacent(left_pos_rev_vec, false, left_val);
             }
@@ -149,7 +196,7 @@ impl SnailfishNumber {
                     right_pos_rev_vec.push(*el);
                 }
             }
-            println!("right_pos_rev_vec {:?}", right_pos_rev_vec);
+            // println!("right_pos_rev_vec {:?}", right_pos_rev_vec);
             if right_pos_rev_vec.len() > 0 {
                 self.explode_update_adjacent(right_pos_rev_vec, true, right_val);
             }
@@ -168,6 +215,7 @@ impl SnailfishNumber {
         if self.depth == 1 {
             self.depth = 0;
             self.val = 0;
+            self.need_split = false;
             *left_val_out = self.left.as_ref().unwrap().val;
             *right_val_out = self.right.as_ref().unwrap().val;
             self.left = None;
@@ -225,24 +273,33 @@ impl SnailfishNumber {
                 }
             }
         }
-        println!("depth {} need_split {}", self.depth, self.need_split);
+        // println!("depth {} need_split {}", self.depth, self.need_split);
     }
 
     pub fn split(&mut self) -> bool {
+        let res = self.split_inner();
+        // if res {
+        //     println!("--- split ---");
+        // }
+        return res;
+    }
+
+    fn split_inner(&mut self) -> bool {
         if self.need_split == false {
             return false;
         }
 
         if self.depth == 0 {
             if self.val < 10 {
+                print!("self.val {}", self.val);
                 panic!("something went wrong in split");
             } else {
                 let left_val = ((self.val as f32) / 2.0).floor() as u8;
-                println!("left_val {}", left_val);
+                // println!("left_val {}", left_val);
                 let need_split_left = left_val >= 10;
                 let right_val = ((self.val as f32) / 2.0).ceil() as u8;
-                println!("right_val {}", right_val);
-                let need_split_right =  right_val >= 10;
+                // println!("right_val {}", right_val);
+                let need_split_right = right_val >= 10;
                 let left_snailfish: SnailfishNumber = SnailfishNumber {
                     left: None,
                     right: None,
@@ -270,9 +327,13 @@ impl SnailfishNumber {
             } else {
                 child = self.right.as_mut().unwrap();
             }
-            child.split();
-            self.depth = cmp::max(self.left.as_ref().unwrap().depth, self.right.as_ref().unwrap().depth) + 1;
-            self.need_split = self.left.as_ref().unwrap().need_split || self.right.as_ref().unwrap().need_split;
+            child.split_inner();
+            self.depth = cmp::max(
+                self.left.as_ref().unwrap().depth,
+                self.right.as_ref().unwrap().depth,
+            ) + 1;
+            self.need_split =
+                self.left.as_ref().unwrap().need_split || self.right.as_ref().unwrap().need_split;
         }
         return true;
     }
@@ -342,80 +403,162 @@ impl SnailfishNumber {
 
 fn main() {
     // EXPLODE
-    // let mut snailfish = SnailfishNumber {
-    //     ..Default::default()
-    // };
-    // snailfish.create(b"[[3,[2,[1,[7,3]]]],[6,[5,[4,[3,2]]]]]");
-    // let position = BASE2.pow(snailfish.depth) as u32;
+    {
+        // let mut snailfish = SnailfishNumber {
+        //     ..Default::default()
+        // };
+        // snailfish.create(b"[[3,[2,[1,[7,3]]]],[6,[5,[4,[3,2]]]]]");
+        // let position = BASE2.pow(snailfish.depth) as u32;
 
-    // let depth = snailfish.depth;
-    // println!("Depth {}", depth);
-    // let mut print_data_map: PrintMap = HashMap::new();
-    // snailfish.get_print_data(&mut print_data_map, depth, 0, position);
-    // SnailfishNumber::print(&print_data_map, depth);
+        // let depth = snailfish.depth;
+        // println!("Depth {}", depth);
+        // let mut print_data_map: PrintMap = HashMap::new();
+        // snailfish.get_print_data(&mut print_data_map, depth, 0, position);
+        // SnailfishNumber::print(&print_data_map, depth);
 
-    // snailfish.explode();
-    // let depth2 = snailfish.depth;
-    // println!("Depth2 {}", depth2);
-    // let mut print_data_map2: PrintMap = HashMap::new();
-    // snailfish.get_print_data(&mut print_data_map2, depth2, 0, position);
-    // SnailfishNumber::print(&print_data_map2, depth2);
+        // snailfish.explode();
+        // let depth2 = snailfish.depth;
+        // println!("Depth2 {}", depth2);
+        // let mut print_data_map2: PrintMap = HashMap::new();
+        // snailfish.get_print_data(&mut print_data_map2, depth2, 0, position);
+        // SnailfishNumber::print(&print_data_map2, depth2);
+    }
 
     // SPLIT
-    // let mut snailfish = SnailfishNumber {
-    //     ..Default::default()
-    // };
-    // snailfish.create(b"[[[[0,7],4],[15,[0,13]]],[1,1]]"); // expect [[[[0,7],4],[[7,8],[0,13]]],[1,1]]
-    // let position = BASE2.pow(snailfish.depth) as u32;
+    {
+        // let mut snailfish = SnailfishNumber {
+        //     ..Default::default()
+        // };
+        // snailfish.create(b"[[[[0,7],4],[15,[0,13]]],[1,1]]"); // expect [[[[0,7],4],[[7,8],[0,13]]],[1,1]]
+        // let position = BASE2.pow(snailfish.depth) as u32;
 
-    // let depth = snailfish.depth;
-    // println!("Depth {}", depth);
-    // let mut print_data_map: PrintMap = HashMap::new();
-    // snailfish.get_print_data(&mut print_data_map, depth, 0, position);
-    // SnailfishNumber::print(&print_data_map, depth);
+        // let depth = snailfish.depth;
+        // println!("Depth {}", depth);
+        // let mut print_data_map: PrintMap = HashMap::new();
+        // snailfish.get_print_data(&mut print_data_map, depth, 0, position);
+        // SnailfishNumber::print(&print_data_map, depth);
 
-    // snailfish.split();
-    // let depth2 = snailfish.depth;
-    // println!("Depth2 {}", depth2);
-    // let mut print_data_map2: PrintMap = HashMap::new();
-    // snailfish.get_print_data(&mut print_data_map2, depth2, 0, position);
-    // SnailfishNumber::print(&print_data_map2, depth2);
+        // snailfish.split();
+        // let depth2 = snailfish.depth;
+        // println!("Depth2 {}", depth2);
+        // let mut print_data_map2: PrintMap = HashMap::new();
+        // snailfish.get_print_data(&mut print_data_map2, depth2, 0, position);
+        // SnailfishNumber::print(&print_data_map2, depth2);
+    }
 
     // SUM
-    let mut s1 = SnailfishNumber {
-        ..Default::default()
-    };
-    s1.create(b"[[[[4,3],4],4],[7,[[8,4],9]]]");
-    let mut s2 = SnailfishNumber {
-        ..Default::default()
-    };
-    let depth1 = s1.depth;
-    println!("Depth1 {}", depth1);
-    let mut print_data_map1: PrintMap = HashMap::new();
-    let position1 = BASE2.pow(s1.depth) as u32;
-    s1.get_print_data(&mut print_data_map1, depth1, 0, position1);
-    SnailfishNumber::print(&print_data_map1, depth1);
+    {
+        // let mut s1 = SnailfishNumber {
+        //     ..Default::default()
+        // };
+        // s1.create(b"[[[[4,3],4],4],[7,[[8,4],9]]]");
+        // let mut s2 = SnailfishNumber {
+        //     ..Default::default()
+        // };
+        // let depth1 = s1.depth;
+        // println!("Depth1 {}", depth1);
+        // let mut print_data_map1: PrintMap = HashMap::new();
+        // let position1 = BASE2.pow(s1.depth) as u32;
+        // s1.get_print_data(&mut print_data_map1, depth1, 0, position1);
+        // SnailfishNumber::print(&print_data_map1, depth1);
 
-    s2.create(b"[1,1]");
-    let mut s_res = SnailfishNumber {
-        ..Default::default()
-    };
-    let depth2 = s2.depth;
-    println!("Depth2 {}", depth2);
-    let mut print_data_map2: PrintMap = HashMap::new();
-    let position2 = BASE2.pow(s2.depth) as u32;
-    s2.get_print_data(&mut print_data_map2, depth2, 0, position2);
-    SnailfishNumber::print(&print_data_map2, depth2);
+        // s2.create(b"[1,1]");
+        // let mut s_res = SnailfishNumber {
+        //     ..Default::default()
+        // };
+        // let depth2 = s2.depth;
+        // println!("Depth2 {}", depth2);
+        // let mut print_data_map2: PrintMap = HashMap::new();
+        // let position2 = BASE2.pow(s2.depth) as u32;
+        // s2.get_print_data(&mut print_data_map2, depth2, 0, position2);
+        // SnailfishNumber::print(&print_data_map2, depth2);
 
-    s_res.sum(s1, s2);
-    let position = BASE2.pow(s_res.depth) as u32;
-    let depth = s_res.depth;
-    println!("Depth {}", depth);
-    let mut print_data_map: PrintMap = HashMap::new();
-    s_res.get_print_data(&mut print_data_map, depth, 0, position);
-    SnailfishNumber::print(&print_data_map, depth);
+        // s_res.sum(s1, s2);
+        // let mut position = BASE2.pow(s_res.depth) as u32;
+        // let depth = s_res.depth;
+        // println!("Depth {}", depth);
+        // let mut print_data_map: PrintMap = HashMap::new();
+        // s_res.get_print_data(&mut print_data_map, depth, 0, position);
+        // SnailfishNumber::print(&print_data_map, depth);
 
-    
+        // let mut cnt = true;
+        // while cnt {
+        //     cnt = s_res.explode() || s_res.split();
+        //     if cnt {
+        //         position = BASE2.pow(s_res.depth) as u32;
+        //         let depth = s_res.depth;
+        //         let mut print_data_map: PrintMap = HashMap::new();
+        //         s_res.get_print_data(&mut print_data_map, depth, 0, position);
+        //         SnailfishNumber::print(&print_data_map, depth);
+        //         println!("Depth {}", depth);
+        //     }
+        // }
+    }
+
+    // SUM MAIN
+    {
+        // let mut s1 = SnailfishNumber {
+        //     ..Default::default()
+        // };
+        // s1.create(b"[[[[4,3],4],4],[7,[[8,4],9]]]");
+        // let mut s2 = SnailfishNumber {
+        //     ..Default::default()
+        // };
+
+        // s2.create(b"[1,1]");
+        // let mut s_res = SnailfishNumber {
+        //     ..Default::default()
+        // };
+
+        // s_res.sum_main(s1, s2);
+        // let position = BASE2.pow(s_res.depth) as u32;
+        // let mut print_data_map: PrintMap = HashMap::new();
+        // s_res.get_print_data(&mut print_data_map, s_res.depth, 0, position);
+        // SnailfishNumber::print(&print_data_map, s_res.depth);
+    }
+
+    // SUM 2
+    {
+        // let mut s1 = SnailfishNumber {
+        //     ..Default::default()
+        // };
+        // s1.create(b"[[[0,[4,5]],[0,0]],[[[4,5],[2,6]],[9,5]]]");
+
+        // let mut s2 = SnailfishNumber {
+        //     ..Default::default()
+        // };
+        // s2.create(b"[7,[[[3,7],[4,3]],[[6,3],[8,8]]]]");
+
+        // s1.sum2_main(s2);
+        // let mut s1_print_data: PrintMap = HashMap::new();
+        // s1.get_print_data(&mut s1_print_data, s1.depth, 0, BASE2.pow(s1.depth) as u32);
+        // SnailfishNumber::print(&s1_print_data, s1.depth);
+    }
+
+    // MAIN 2
+    {
+        let content = fs::read_to_string("src/data01.txt").expect("some bug");
+        let first_line = content.lines().next().unwrap();
+
+        let mut num1 = SnailfishNumber {
+            ..Default::default()
+        };
+        num1.create(first_line.as_bytes());
+
+        for (index, line) in content.lines().enumerate() {
+            if index == 0 {
+                continue;
+            }
+            let mut num2 = SnailfishNumber {
+                ..Default::default()
+            };
+            num2.create(line.as_bytes());
+            num1.sum2_main(num2);
+            let mut num1_print: PrintMap = HashMap::new();
+            num1.get_print_data(&mut num1_print, num1.depth, 0, BASE2.pow(num1.depth) as u32);
+            SnailfishNumber::print(&num1_print, num1.depth);
+        }
+    }
 }
 
 mod test {
@@ -656,12 +799,12 @@ mod test {
         let mut s2 = SnailfishNumber {
             ..Default::default()
         };
-    
+
         s2.create(b"[1,1]");
         let mut s_res = SnailfishNumber {
             ..Default::default()
         };
-    
+
         s_res.sum(s1, s2);
         let position = BASE2.pow(s_res.depth) as u32;
         let depth = s_res.depth;
@@ -675,5 +818,95 @@ mod test {
         let mut print_res_data_map: PrintMap = HashMap::new();
         s_res.get_print_data(&mut print_res_data_map, s_exp_res.depth, 0, position);
         assert_eq!(print_data_map, print_res_data_map);
+    }
+
+    #[test]
+    fn sum_main_test1() {
+        let mut s1 = SnailfishNumber {
+            ..Default::default()
+        };
+        s1.create(b"[[[[4,3],4],4],[7,[[8,4],9]]]");
+        let mut s2 = SnailfishNumber {
+            ..Default::default()
+        };
+
+        s2.create(b"[1,1]");
+        let mut s_res = SnailfishNumber {
+            ..Default::default()
+        };
+
+        s_res.sum_main(s1, s2);
+        let position = BASE2.pow(s_res.depth) as u32;
+        let depth = s_res.depth;
+        let mut print_data_map: PrintMap = HashMap::new();
+        s_res.get_print_data(&mut print_data_map, depth, 0, position);
+
+        let mut s_exp_res = SnailfishNumber {
+            ..Default::default()
+        };
+        s_exp_res.create(b"[[[[0,7],4],[[7,8],[6,0]]],[8,1]]");
+        let mut print_res_data_map: PrintMap = HashMap::new();
+        s_res.get_print_data(&mut print_res_data_map, s_exp_res.depth, 0, position);
+        assert_eq!(print_data_map, print_res_data_map);
+    }
+
+    #[test]
+    fn sum2_test1() {
+        let mut s1 = SnailfishNumber {
+            ..Default::default()
+        };
+        s1.create(b"[[[[4,3],4],4],[7,[[8,4],9]]]");
+
+        let mut s2 = SnailfishNumber {
+            ..Default::default()
+        };
+        s2.create(b"[1,1]");
+
+        s1.sum2(s2);
+        let mut s1_print_data: PrintMap = HashMap::new();
+        s1.get_print_data(&mut s1_print_data, s1.depth, 0, BASE2.pow(s1.depth) as u32);
+
+        let mut s_exp_res = SnailfishNumber {
+            ..Default::default()
+        };
+        s_exp_res.create(b"[[[[[4,3],4],4],[7,[[8,4],9]]],[1,1]]");
+        let mut s_exp_res_print_data: PrintMap = HashMap::new();
+        s_exp_res.get_print_data(
+            &mut s_exp_res_print_data,
+            s_exp_res.depth,
+            0,
+            BASE2.pow(s_exp_res.depth) as u32,
+        );
+        assert_eq!(s1_print_data, s_exp_res_print_data);
+    }
+
+    #[test]
+    fn sum2_main_test1() {
+        let mut s1 = SnailfishNumber {
+            ..Default::default()
+        };
+        s1.create(b"[[[[4,3],4],4],[7,[[8,4],9]]]");
+
+        let mut s2 = SnailfishNumber {
+            ..Default::default()
+        };
+        s2.create(b"[1,1]");
+
+        s1.sum2_main(s2);
+        let mut s1_print_data: PrintMap = HashMap::new();
+        s1.get_print_data(&mut s1_print_data, s1.depth, 0, BASE2.pow(s1.depth) as u32);
+
+        let mut s_exp_res = SnailfishNumber {
+            ..Default::default()
+        };
+        s_exp_res.create(b"[[[[0,7],4],[[7,8],[6,0]]],[8,1]]");
+        let mut s_exp_res_print_data: PrintMap = HashMap::new();
+        s_exp_res.get_print_data(
+            &mut s_exp_res_print_data,
+            s_exp_res.depth,
+            0,
+            BASE2.pow(s_exp_res.depth) as u32,
+        );
+        assert_eq!(s1_print_data, s_exp_res_print_data);
     }
 }
