@@ -338,6 +338,26 @@ impl SnailfishNumber {
         return true;
     }
 
+    // [[1,2],[[3,4],5]]
+    pub fn calc_magnitude(&self) -> u32 {
+        // println!("self.depth {}, val {}", self.depth, self.val);
+        if self.depth == 0 {
+            panic!("something went wrong in calc_magnitude()");
+        }
+        let left = self.left.as_ref().unwrap();
+        let left_val = if left.depth == 0 {
+            left.val as u32
+        } else {
+            left.calc_magnitude()
+        };
+        let right = self.right.as_ref().unwrap();
+        let right_val = if right.depth == 0 {
+            right.val as u32
+        } else {
+            right.calc_magnitude()
+        };
+        return left_val * 3 + right_val * 2;
+    }
     // REFERENCE TO MUTABLE DATA
     // IMMUTABLE SELF
     pub fn get_print_data(
@@ -535,29 +555,53 @@ fn main() {
         // SnailfishNumber::print(&s1_print_data, s1.depth);
     }
 
-    // MAIN 2
+    // MAIN 2 calc sum all
     {
-        let content = fs::read_to_string("src/data01.txt").expect("some bug");
-        let first_line = content.lines().next().unwrap();
+        // let content = fs::read_to_string("src/data02.txt").expect("some bug");
+        // let first_line = content.lines().next().unwrap();
 
-        let mut num1 = SnailfishNumber {
-            ..Default::default()
-        };
-        num1.create(first_line.as_bytes());
+        // let mut num1 = SnailfishNumber {
+        //     ..Default::default()
+        // };
+        // num1.create(first_line.as_bytes());
 
-        for (index, line) in content.lines().enumerate() {
-            if index == 0 {
-                continue;
+        // for (index, line) in content.lines().enumerate() {
+        //     if index == 0 {
+        //         continue;
+        //     }
+        //     let mut num2 = SnailfishNumber {
+        //         ..Default::default()
+        //     };
+        //     num2.create(line.as_bytes());
+        //     num1.sum2_main(num2);
+        // }
+        // let magnitude = num1.calc_magnitude();
+        // println!("magnitude {}", magnitude);
+    }
+
+    // MAIN 2 calc max sum
+    {
+        let content = fs::read_to_string("src/data02.txt").expect("some bug");
+
+        let mut max_mag = 0;
+        for  line1 in content.lines() {
+            for line2 in content.lines() {
+                let mut num1 = SnailfishNumber {
+                    ..Default::default()
+                };
+                num1.create(line1.as_bytes());
+                let mut num2 = SnailfishNumber {
+                    ..Default::default()
+                };
+                num2.create(line2.as_bytes());
+                num1.sum2_main(num2);
+                let mag = num1.calc_magnitude();
+                if mag > max_mag {
+                    max_mag = mag;
+                }
             }
-            let mut num2 = SnailfishNumber {
-                ..Default::default()
-            };
-            num2.create(line.as_bytes());
-            num1.sum2_main(num2);
-            let mut num1_print: PrintMap = HashMap::new();
-            num1.get_print_data(&mut num1_print, num1.depth, 0, BASE2.pow(num1.depth) as u32);
-            SnailfishNumber::print(&num1_print, num1.depth);
         }
+        println!("max_mag {}", max_mag);
     }
 }
 
@@ -908,5 +952,33 @@ mod test {
             BASE2.pow(s_exp_res.depth) as u32,
         );
         assert_eq!(s1_print_data, s_exp_res_print_data);
+    }
+
+    #[test]
+    fn calc_magnitude1() {
+        let mut s1 = SnailfishNumber {
+            ..Default::default()
+        };
+        s1.create(b"[[1,2],[[3,4],5]]");
+        let res = s1.calc_magnitude();
+        assert_eq!(res, 143);
+    }
+    #[test]
+    fn calc_magnitude2() {
+        let mut s1 = SnailfishNumber {
+            ..Default::default()
+        };
+        s1.create(b"[[[[0,7],4],[[7,8],[6,0]]],[8,1]]");
+        let res = s1.calc_magnitude();
+        assert_eq!(res, 1384);
+    }
+    #[test]
+    fn calc_magnitude3() {
+        let mut s1 = SnailfishNumber {
+            ..Default::default()
+        };
+        s1.create(b"[[[[8,7],[7,7]],[[8,6],[7,7]]],[[[0,7],[6,6]],[8,7]]]");
+        let res = s1.calc_magnitude();
+        assert_eq!(res, 3488);
     }
 }
