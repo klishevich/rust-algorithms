@@ -48,6 +48,18 @@ impl Default for SnailfishNumber {
 
 impl SnailfishNumber {
     // STATIC METHODS
+    pub fn sum_main(s1: SnailfishNumber, s2: SnailfishNumber) -> SnailfishNumber {
+        let mut res = SnailfishNumber {
+            ..Default::default()
+        };
+        res.sum(s1, s2);
+        let mut cnt = true;
+        while cnt {
+            cnt = res.explode() || res.split();
+        }
+        return res;
+    }
+
     pub fn print(data: &PrintMap, depth: u32) {
         for i in 0..depth + 1 {
             let vertices_vec = data.get(&i).unwrap();
@@ -98,18 +110,6 @@ impl SnailfishNumber {
         self.left = Some(Box::new(s1));
         self.right = Some(Box::new(s2));
         return self;
-    }
-
-    pub fn sum_main(s1: SnailfishNumber, s2: SnailfishNumber) -> SnailfishNumber {
-        let mut res = SnailfishNumber {
-            ..Default::default()
-        };
-        res.sum(s1, s2);
-        let mut cnt = true;
-        while cnt {
-            cnt = res.explode() || res.split();
-        }
-        return res;
     }
 
     // TAKE EXAMPLE
@@ -183,6 +183,86 @@ impl SnailfishNumber {
         return true;
     }
 
+    pub fn split(&mut self) -> bool {
+        let res = self.split_inner();
+        return res;
+    }
+
+    pub fn calc_magnitude(&self) -> u32 {
+        if self.depth == 0 {
+            panic!("something went wrong in calc_magnitude()");
+        }
+        let left = self.left.as_ref().unwrap();
+        let left_val = if left.depth == 0 {
+            left.val as u32
+        } else {
+            left.calc_magnitude()
+        };
+        let right = self.right.as_ref().unwrap();
+        let right_val = if right.depth == 0 {
+            right.val as u32
+        } else {
+            right.calc_magnitude()
+        };
+        return left_val * 3 + right_val * 2;
+    }
+
+    // REFERENCE TO MUTABLE DATA
+    // IMMUTABLE SELF
+    pub fn get_print_data(
+        &self,
+        mut print_data_out: &mut PrintMap,
+        total_depth: u32,
+        cur_depth: u32,
+        cur_position: u32,
+    ) -> () {
+        let prt_val: char = if !self.has_child() {
+            if self.val <= 9 {
+                (self.val + 48) as char
+            } else {
+                (self.val - 10 + 97) as char
+            }
+        } else {
+            '*'
+        };
+        print_data_out
+            .entry(cur_depth)
+            .or_default()
+            .push((cur_position, prt_val));
+        if self.has_child() {
+            let shift = BASE2.pow(total_depth - cur_depth - 1) as u32;
+            let left_position = cur_position - shift;
+            let left_ref = self.left.as_ref().unwrap();
+            left_ref.get_print_data(
+                &mut print_data_out,
+                total_depth,
+                cur_depth + 1,
+                left_position,
+            );
+            let right_position = cur_position + shift;
+            let right_ref = self.right.as_ref().unwrap();
+            right_ref.get_print_data(
+                &mut print_data_out,
+                total_depth,
+                cur_depth + 1,
+                right_position,
+            );
+        }
+    }
+
+    // PRIVATE INSTANCE METHODS
+    fn has_child(&self) -> bool {
+        self.depth != 0
+    }
+
+    fn get_child(&mut self, go_left: bool) -> Option<&mut Box<SnailfishNumber>> {
+        if go_left {
+            return self.left.as_mut();
+        } else {
+            return self.right.as_mut();
+        }
+    }
+
     fn explode_get_position(
         &mut self,
         pos_vec_out: &mut Vec<u8>,
@@ -250,11 +330,6 @@ impl SnailfishNumber {
         }
     }
 
-    pub fn split(&mut self) -> bool {
-        let res = self.split_inner();
-        return res;
-    }
-
     fn split_inner(&mut self) -> bool {
         if self.need_split == false {
             return false;
@@ -304,80 +379,6 @@ impl SnailfishNumber {
                 self.left.as_ref().unwrap().need_split || self.right.as_ref().unwrap().need_split;
         }
         return true;
-    }
-
-    pub fn calc_magnitude(&self) -> u32 {
-        if self.depth == 0 {
-            panic!("something went wrong in calc_magnitude()");
-        }
-        let left = self.left.as_ref().unwrap();
-        let left_val = if left.depth == 0 {
-            left.val as u32
-        } else {
-            left.calc_magnitude()
-        };
-        let right = self.right.as_ref().unwrap();
-        let right_val = if right.depth == 0 {
-            right.val as u32
-        } else {
-            right.calc_magnitude()
-        };
-        return left_val * 3 + right_val * 2;
-    }
-    // REFERENCE TO MUTABLE DATA
-    // IMMUTABLE SELF
-    pub fn get_print_data(
-        &self,
-        mut print_data_out: &mut PrintMap,
-        total_depth: u32,
-        cur_depth: u32,
-        cur_position: u32,
-    ) -> () {
-        let prt_val: char = if !self.has_child() {
-            if self.val <= 9 {
-                (self.val + 48) as char
-            } else {
-                (self.val - 10 + 97) as char
-            }
-        } else {
-            '*'
-        };
-        print_data_out
-            .entry(cur_depth)
-            .or_default()
-            .push((cur_position, prt_val));
-        if self.has_child() {
-            let shift = BASE2.pow(total_depth - cur_depth - 1) as u32;
-            let left_position = cur_position - shift;
-            let left_ref = self.left.as_ref().unwrap();
-            left_ref.get_print_data(
-                &mut print_data_out,
-                total_depth,
-                cur_depth + 1,
-                left_position,
-            );
-            let right_position = cur_position + shift;
-            let right_ref = self.right.as_ref().unwrap();
-            right_ref.get_print_data(
-                &mut print_data_out,
-                total_depth,
-                cur_depth + 1,
-                right_position,
-            );
-        }
-    }
-
-    // PRIVATE INSTANCE METHODS
-    fn has_child(&self) -> bool {
-        self.depth != 0
-    }
-
-    fn get_child(&mut self, go_left: bool) -> Option<&mut Box<SnailfishNumber>> {
-        if go_left {
-            return self.left.as_mut();
-        } else {
-            return self.right.as_mut();
-        }
     }
 }
 
