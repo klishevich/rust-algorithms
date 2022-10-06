@@ -4,22 +4,34 @@ use std::fs;
 
 type Point = (i32, i32, i32);
 
-/**
- * Permutation value could be from 0 to 47
- */
-fn get_permuted_point(p: Point, permutation: u8) -> Point {
-    let p1: u8 = permutation % 6;
-    println!("p1 {}", p1);
-    let r1: u8 = permutation / 6;
-    let p2: u8 = r1 % 4;
-    println!("p2 {}", p2);
-    let p3: u8 = r1 / 4;
-    println!("p3 {}", p3);
-    let mut x1: u8;
-    let mut y1: u8;
-    let mut z1: u8;
-
-    let (x, y, z) = p;
+fn get_permuted_point(p: Point, change_sign_x: bool, change_sign_y: bool, change_sign_z: bool, swap_yz: bool, shift_all: u8) -> Point {
+    let (mut x, mut y, mut z) = p;
+    if change_sign_x {
+        x = -x;
+    }
+    if change_sign_y {
+        y = -y;
+    }
+    if change_sign_z {
+        z = -z;
+    }
+    if swap_yz {
+        let tmp = y;
+        y = z;
+        z = tmp;
+    }
+    let shift = shift_all % 3;
+    if shift == 1 {
+        let tmp_x = x;
+        x = z;
+        z = y;
+        y = tmp_x;
+    } else if shift == 2 {
+        let tmp_x = x;
+        x = y;
+        y = z;
+        z = tmp_x;
+    }
     return (x, y, z);
 }
 
@@ -52,6 +64,22 @@ fn main() {
     //     println!("{:?}", scanner_map[key]);
     // }
 
-    let r = get_permuted_point((1,2,3), 47);
+    let r = get_permuted_point((1,2,3), true, false, false, false, 1);
     println!("{:?}", r);
+}
+
+mod test {
+    use crate::get_permuted_point;
+
+    #[test]
+    fn get_permuted_point_test() {
+        let res = get_permuted_point((1,2,3), true, false, false, false, 1);
+        assert_eq!(res, (3, -1, 2));
+    }
+
+    #[test]
+    fn get_permuted_point_test1() {
+        let res = get_permuted_point((1,2,3), false, false, false, false, 2);
+        assert_eq!(res, (2, 3, 1));
+    }
 }
