@@ -101,10 +101,10 @@ fn main() {
     }
 
     // MAP SORT HASHMAP
-    for key in scanner_map.keys().sorted() {
-        println!("{}", key);
-        println!("{:?}", scanner_map[key]);
-    }
+    // for key in scanner_map.keys().sorted() {
+    //     println!("{}", key);
+    //     println!("{:?}", scanner_map[key]);
+    // }
 
     for key1 in scanner_map.keys().sorted() {
         for key2 in scanner_map.keys().sorted() {
@@ -112,8 +112,15 @@ fn main() {
                 println!("key1 {}, key2 {}", key1, key2);
                 let beacon_list1 = scanner_map.get(key1).unwrap();
                 let beacon_list2 = scanner_map.get(key2).unwrap();
+                let mut origin_found = false;
                 for beacon_list1_origin in beacon_list1 {
+                    if origin_found {
+                        break;
+                    }
                     for beacon_list2_origin in beacon_list2 {
+                        if origin_found {
+                            break;
+                        }
                         for permutation in 0..48 {
                             let (change_sign_x, change_sign_y, change_sign_z, swap_yz, shift_all) =
                                 decompose_number(permutation);
@@ -121,7 +128,8 @@ fn main() {
                             for beacon1 in beacon_list1 {
                                 for beacon2 in beacon_list2 {
                                     let beacon1_new_origin = point_to_origin(*beacon1, *beacon_list1_origin);
-                                    let beacon2_new_origin = point_to_origin(*beacon2, *beacon_list1_origin);
+                                    let beacon2_new_origin = point_to_origin(*beacon2, *beacon_list2_origin);
+                                    // println!("test, beacon_list1_origin {:?}, beacon_list2_origin {:?}", beacon_list1_origin, beacon_list2_origin);
                                     let beacon2_new_origin_perm = get_permuted_point(
                                         beacon2_new_origin,
                                         change_sign_x,
@@ -130,7 +138,9 @@ fn main() {
                                         swap_yz,
                                         shift_all,
                                     );
+                                    // println!("test, beacon_list1_origin {:?}, beacon2_new_origin_perm {:?}", beacon_list1_origin, beacon2_new_origin_perm);
                                     if points_equal(beacon1_new_origin, beacon2_new_origin_perm) {
+                                        // println!("equal, beacon_list1_origin {:?}, beacon_list2_origin {:?}", beacon_list1_origin, beacon_list2_origin);
                                         number_of_matches += 1;
                                     }
                                 }
@@ -142,6 +152,8 @@ fn main() {
                                 change_sign_z,
                                 swap_yz,
                                 shift_all);
+                                origin_found = true;
+                                break;
                             }
                         }
                     }
