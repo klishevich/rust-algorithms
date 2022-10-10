@@ -1,5 +1,5 @@
-use itertools::Itertools;
 use core::num;
+use itertools::Itertools;
 use std::collections::HashMap;
 use std::fs;
 
@@ -42,6 +42,49 @@ fn get_permuted_point(
         x = y;
         y = z;
         z = tmp_x;
+    }
+    return (x, y, z);
+}
+
+/**
+ * The shift_all should accept one of the following value 0,1,2
+ */
+fn get_inverse_permuted_point(
+    p: Point,
+    change_sign_x: bool,
+    change_sign_y: bool,
+    change_sign_z: bool,
+    swap_yz: bool,
+    shift_all: u8,
+) -> Point {
+    let (mut x, mut y, mut z) = p;
+    let shift = shift_all % 3;
+    if shift == 2 {
+        let tmp_x = x;
+        x = z;
+        z = y;
+        y = tmp_x;
+    } else if shift == 1 {
+        let tmp_x = x;
+        x = y;
+        y = z;
+        z = tmp_x;
+    }
+
+    if swap_yz {
+        let tmp = y;
+        y = z;
+        z = tmp;
+    }
+
+    if change_sign_x {
+        x = -x;
+    }
+    if change_sign_y {
+        y = -y;
+    }
+    if change_sign_z {
+        z = -z;
     }
     return (x, y, z);
 }
@@ -127,8 +170,10 @@ fn main() {
                             let mut number_of_matches = 0;
                             for beacon1 in beacon_list1 {
                                 for beacon2 in beacon_list2 {
-                                    let beacon1_new_origin = point_to_origin(*beacon1, *beacon_list1_origin);
-                                    let beacon2_new_origin = point_to_origin(*beacon2, *beacon_list2_origin);
+                                    let beacon1_new_origin =
+                                        point_to_origin(*beacon1, *beacon_list1_origin);
+                                    let beacon2_new_origin =
+                                        point_to_origin(*beacon2, *beacon_list2_origin);
                                     // println!("test, beacon_list1_origin {:?}, beacon_list2_origin {:?}", beacon_list1_origin, beacon_list2_origin);
                                     let beacon2_new_origin_perm = get_permuted_point(
                                         beacon2_new_origin,
@@ -168,6 +213,7 @@ fn main() {
 
 mod test {
     use crate::decompose_number;
+    use crate::get_inverse_permuted_point;
     use crate::get_permuted_point;
 
     #[test]
@@ -192,5 +238,109 @@ mod test {
     fn decompose_number_test2() {
         let res = decompose_number(47);
         assert_eq!(res, (true, true, true, true, 2));
+    }
+
+    #[test]
+    fn get_reverse_permuted_point_test1() {
+        let change_sign_x = false;
+        let change_sign_y = false;
+        let change_sign_z = false;
+        let swap_yz = false;
+        let shift_all: u8 = 1;
+        let res = get_permuted_point(
+            (1, 2, 3),
+            change_sign_x,
+            change_sign_y,
+            change_sign_z,
+            swap_yz,
+            shift_all,
+        );
+        assert_eq!(res, (3, 1, 2));
+        let res_rev = get_inverse_permuted_point(
+            res,
+            change_sign_x,
+            change_sign_y,
+            change_sign_z,
+            swap_yz,
+            shift_all,
+        );
+        assert_eq!(res_rev, (1, 2, 3));
+    }
+
+    #[test]
+    fn get_reverse_permuted_point_test2() {
+        let change_sign_x = false;
+        let change_sign_y = false;
+        let change_sign_z = false;
+        let swap_yz = true;
+        let shift_all: u8 = 1;
+        let res = get_permuted_point(
+            (1, 2, 3),
+            change_sign_x,
+            change_sign_y,
+            change_sign_z,
+            swap_yz,
+            shift_all,
+        );
+        assert_eq!(res, (2, 1, 3));
+        let res_rev = get_inverse_permuted_point(
+            res,
+            change_sign_x,
+            change_sign_y,
+            change_sign_z,
+            swap_yz,
+            shift_all,
+        );
+        assert_eq!(res_rev, (1, 2, 3));
+    }
+
+    #[test]
+    fn get_reverse_permuted_point_test3() {
+        let change_sign_x = true;
+        let change_sign_y = false;
+        let change_sign_z = false;
+        let swap_yz = true;
+        let shift_all: u8 = 1;
+        let res = get_permuted_point(
+            (1, 2, 3),
+            change_sign_x,
+            change_sign_y,
+            change_sign_z,
+            swap_yz,
+            shift_all,
+        );
+        assert_eq!(res, (2, -1, 3));
+        let res_rev = get_inverse_permuted_point(
+            res,
+            change_sign_x,
+            change_sign_y,
+            change_sign_z,
+            swap_yz,
+            shift_all,
+        );
+        assert_eq!(res_rev, (1, 2, 3));
+    }
+
+    #[test]
+    fn get_reverse_permuted_point_test4() {
+        let (change_sign_x, change_sign_y, change_sign_z, swap_yz, shift_all) =
+            decompose_number(35);
+        let res = get_permuted_point(
+            (1, 2, 3),
+            change_sign_x,
+            change_sign_y,
+            change_sign_z,
+            swap_yz,
+            shift_all,
+        );
+        let res_rev = get_inverse_permuted_point(
+            res,
+            change_sign_x,
+            change_sign_y,
+            change_sign_z,
+            swap_yz,
+            shift_all,
+        );
+        assert_eq!(res_rev, (1, 2, 3));
     }
 }
