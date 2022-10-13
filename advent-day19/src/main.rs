@@ -5,6 +5,26 @@ use std::fs;
 
 type Point = (i32, i32, i32);
 
+struct EdgeInfo {
+    node_id: u8,
+    from_origin: Point,
+    to_origin: Point,
+    permutation: u8,
+    is_reverse_permutation: bool
+}
+
+struct ScannerDfs {
+    visited: HashMap<u8, bool>,
+    result: HashMap<String,Point>
+}
+
+// RECURSION
+impl ScannerDfs {
+    pub fn run(&mut self, m: &HashMap<u8, Vec<EdgeInfo>>, scanners: u8, cur_node: u8) -> () {
+
+    }
+}
+
 /**
  * The shift_all should accept one of the following value 0,1,2
  */
@@ -123,12 +143,12 @@ fn points_equal(p1: Point, p2: Point) -> bool {
 
 fn main() {
     let content = fs::read_to_string("src/data01.txt").expect("some bug");
-    let mut scanner_id: i32 = -1;
-    let mut scanner_map: HashMap<i32, Vec<Point>> = HashMap::new();
+    let mut scanner_id: u8 = 0;
+    let mut scanner_map: HashMap<u8, Vec<Point>> = HashMap::new();
     for (index, line) in content.lines().enumerate() {
         if line.contains("scanner") {
             scanner_id += 1;
-            scanner_map.insert(scanner_id, Vec::new());
+            scanner_map.insert(scanner_id - 1, Vec::new());
         } else if line.is_empty() {
             continue;
         } else {
@@ -137,7 +157,7 @@ fn main() {
             let second: i32 = strs[1].parse().unwrap();
             let third: i32 = strs[2].parse().unwrap();
             scanner_map
-                .get_mut(&scanner_id)
+                .get_mut(&(scanner_id-1))
                 .unwrap()
                 .push((first, second, third));
         }
@@ -149,10 +169,11 @@ fn main() {
     //     println!("{:?}", scanner_map[key]);
     // }
 
+    let mut adjacency_map: HashMap<u8, Vec<EdgeInfo>> = HashMap::new();
+
     for key1 in scanner_map.keys().sorted() {
         for key2 in scanner_map.keys().sorted() {
             if *key1 < *key2 {
-                println!("key1 {}, key2 {}", key1, key2);
                 let beacon_list1 = scanner_map.get(key1).unwrap();
                 let beacon_list2 = scanner_map.get(key2).unwrap();
                 let mut origin_found = false;
@@ -191,13 +212,30 @@ fn main() {
                                 }
                             }
                             if number_of_matches >= 12 {
-                                println!("!!! number_of_matches {}, beacon_list1_origin {:?}, beacon_list2_origin {:?}", number_of_matches, beacon_list1_origin, beacon_list2_origin);
-                                println!("change_sign_x {}, change_sign_y {}, change_sign_z {}, swap_yz {}, shift_all {}", change_sign_x,
-                                change_sign_y,
-                                change_sign_z,
-                                swap_yz,
-                                shift_all);
+                                // println!("   {} <-> {}", key1, key2);
+                                // println!("!!! number_of_matches {}, beacon_list1_origin {:?}, beacon_list2_origin {:?}", number_of_matches, beacon_list1_origin, beacon_list2_origin);
+                                // println!("change_sign_x {}, change_sign_y {}, change_sign_z {}, swap_yz {}, shift_all {}", change_sign_x,
+                                // change_sign_y,
+                                // change_sign_z,
+                                // swap_yz,
+                                // shift_all);
                                 origin_found = true;
+                                let key1_key2_edge_info = EdgeInfo {
+                                    node_id: *key2,
+                                    from_origin: *beacon_list1_origin,
+                                    to_origin: *beacon_list2_origin,
+                                    is_reverse_permutation: true,
+                                    permutation: permutation
+                                };
+                                adjacency_map.entry(*key1).or_default().push(key1_key2_edge_info);
+                                let key2_key1_edge_info = EdgeInfo {
+                                    node_id: *key1,
+                                    from_origin: *beacon_list2_origin,
+                                    to_origin: *beacon_list1_origin,
+                                    is_reverse_permutation: false,
+                                    permutation: permutation
+                                };
+                                adjacency_map.entry(*key2).or_default().push(key2_key1_edge_info);
                                 break;
                             }
                         }
@@ -207,8 +245,14 @@ fn main() {
         }
     }
 
-    // let r = get_permuted_point((1,2,3), true, false, false, false, 1);
-    // println!("{:?}", r);
+    for key in adjacency_map.keys().sorted() {
+        println!("  --{}--", key);
+        let val_vec = adjacency_map.get(key).unwrap();
+        for ei in val_vec {
+            println!("node_id {} is_rev {}", ei.node_id, ei.is_reverse_permutation);
+        }
+    }
+
 }
 
 mod test {
