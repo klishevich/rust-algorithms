@@ -1,4 +1,5 @@
 use core::num;
+use std::char::MAX;
 use itertools::Itertools;
 use std::collections::HashMap;
 use std::fs;
@@ -13,16 +14,9 @@ struct EdgeInfo {
     is_reverse_permutation: bool
 }
 
-struct ScannerDfs {
-    visited: HashMap<u8, bool>,
-    result: HashMap<String,Point>
-}
-
-// RECURSION
-impl ScannerDfs {
-    pub fn run(&mut self, m: &HashMap<u8, Vec<EdgeInfo>>, scanners: u8, cur_node: u8) -> () {
-
-    }
+struct ScannerRoutes {
+    routes_res: Vec<Vec<u8>>,
+    included: Vec<bool>
 }
 
 /**
@@ -141,14 +135,76 @@ fn points_equal(p1: Point, p2: Point) -> bool {
     return false;
 }
 
+fn primMST(m: &HashMap<u8, Vec<EdgeInfo>>, scanner_cnt: u8) -> Vec<Vec<u8>> {
+    // let mut included = vec![false; scanner_cnt as usize];
+    let mut routes_res: Vec<Vec<u8>> = vec![];
+    let MAX_VAL: u8 = 255;
+    let COST = 1;
+    let mut parent: Vec<u8> = vec![MAX_VAL; scanner_cnt as usize];
+    let mut key: Vec<u8> = vec![MAX_VAL; scanner_cnt as usize];
+    let mut mst_set: Vec<bool> = vec![false; scanner_cnt as usize];
+
+    key[0] = 0;
+    parent[0] = MAX_VAL;
+
+    // Force me to use pure functions
+    // Does not work if I use mst_set and key from the closure
+    let min_key_fn = |mst_set2: &Vec<bool>, key2: &Vec<u8>| -> u8 {
+        let mut min = MAX_VAL;
+        let mut min_index = MAX_VAL;
+        for v in 0..scanner_cnt {
+            if mst_set2[v as usize] == false && key2[v as usize] < min {
+                min = key2[v as usize];
+                min_index = v;
+            }
+        }
+        return min_index;
+    };
+
+
+    for i in 0..scanner_cnt {
+        let u = min_key_fn(&mst_set, &key);
+        mst_set[u as usize] = true;
+
+        let cur_node_paths = m.get(&u).unwrap();
+
+        for v in cur_node_paths {
+            let node_id = v.node_id as usize;
+            if mst_set[node_id] == false && COST < key[node_id] {
+                parent[node_id] = u;
+                key[node_id] = COST;
+            }
+        }
+    }
+
+    println!("parent {:?}", parent);
+    println!("key {:?}", key);
+    println!("mst_set {:?}", mst_set);
+
+    for i in 1..scanner_cnt {
+        let mut r: Vec<u8> = Vec::new();
+        let mut cur_node = i;
+        for j in 0..scanner_cnt {
+            r.push(cur_node);
+            cur_node = parent[cur_node as usize];
+            if cur_node == MAX_VAL {
+                break;
+            }
+        }
+        routes_res.push(r)
+    }
+    
+    return routes_res;
+}
+
 fn main() {
     let content = fs::read_to_string("src/data01.txt").expect("some bug");
-    let mut scanner_id: u8 = 0;
+    let mut scanner_cnt: u8 = 0;
     let mut scanner_map: HashMap<u8, Vec<Point>> = HashMap::new();
     for (index, line) in content.lines().enumerate() {
         if line.contains("scanner") {
-            scanner_id += 1;
-            scanner_map.insert(scanner_id - 1, Vec::new());
+            scanner_cnt += 1;
+            scanner_map.insert(scanner_cnt - 1, Vec::new());
         } else if line.is_empty() {
             continue;
         } else {
@@ -157,7 +213,7 @@ fn main() {
             let second: i32 = strs[1].parse().unwrap();
             let third: i32 = strs[2].parse().unwrap();
             scanner_map
-                .get_mut(&(scanner_id-1))
+                .get_mut(&(scanner_cnt-1))
                 .unwrap()
                 .push((first, second, third));
         }
@@ -252,6 +308,9 @@ fn main() {
             println!("node_id {} is_rev {}", ei.node_id, ei.is_reverse_permutation);
         }
     }
+
+    let routes = primMST(&adjacency_map, scanner_cnt);
+    println!("{:?}", routes);
 
 }
 
