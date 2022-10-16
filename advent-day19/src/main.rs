@@ -1,6 +1,6 @@
 use core::num;
-use std::char::MAX;
 use itertools::Itertools;
+use std::char::MAX;
 use std::collections::HashMap;
 use std::fs;
 
@@ -11,12 +11,7 @@ struct EdgeInfo {
     from_origin: Point,
     to_origin: Point,
     permutation: u8,
-    is_reverse_permutation: bool
-}
-
-struct ScannerRoutes {
-    routes_res: Vec<Vec<u8>>,
-    included: Vec<bool>
+    is_reverse_permutation: bool,
 }
 
 /**
@@ -63,7 +58,7 @@ fn get_permuted_point(
 /**
  * The shift_all should accept one of the following value 0,1,2
  */
-fn get_inverse_permuted_point(
+fn get_reverse_permuted_point(
     p: Point,
     change_sign_x: bool,
     change_sign_y: bool,
@@ -128,6 +123,10 @@ fn point_to_origin(p: Point, origin: Point) -> Point {
     return (p.0 - origin.0, p.1 - origin.1, p.2 - origin.2);
 }
 
+fn point_to_origin_reverse(p: Point, origin: Point) -> Point {
+    return (p.0 + origin.0, p.1 + origin.1, p.2 + origin.2);
+}
+
 fn points_equal(p1: Point, p2: Point) -> bool {
     if p1.0 == p2.0 && p1.1 == p2.1 && p1.2 == p2.2 {
         return true;
@@ -135,23 +134,27 @@ fn points_equal(p1: Point, p2: Point) -> bool {
     return false;
 }
 
-fn primMST(m: &HashMap<u8, Vec<EdgeInfo>>, scanner_cnt: u8) -> Vec<Vec<u8>> {
+/**
+ * Prim’s Minimum Spanning Tree (MST) | Greedy Algo-5
+ * https://www.geeksforgeeks.org/prims-minimum-spanning-tree-mst-greedy-algo-5/
+ */
+fn prim_mst(adj_map: &HashMap<u8, HashMap<u8, EdgeInfo>>, scanner_cnt: u8) -> Vec<Vec<u8>> {
     // let mut included = vec![false; scanner_cnt as usize];
     let mut routes_res: Vec<Vec<u8>> = vec![];
-    let MAX_VAL: u8 = 255;
-    let COST = 1;
-    let mut parent: Vec<u8> = vec![MAX_VAL; scanner_cnt as usize];
-    let mut key: Vec<u8> = vec![MAX_VAL; scanner_cnt as usize];
+    let max_val: u8 = 255;
+    let cost = 1;
+    let mut parent: Vec<u8> = vec![max_val; scanner_cnt as usize];
+    let mut key: Vec<u8> = vec![max_val; scanner_cnt as usize];
     let mut mst_set: Vec<bool> = vec![false; scanner_cnt as usize];
 
     key[0] = 0;
-    parent[0] = MAX_VAL;
+    parent[0] = max_val;
 
     // Force me to use pure functions
     // Does not work if I use mst_set and key from the closure
     let min_key_fn = |mst_set2: &Vec<bool>, key2: &Vec<u8>| -> u8 {
-        let mut min = MAX_VAL;
-        let mut min_index = MAX_VAL;
+        let mut min = max_val;
+        let mut min_index = max_val;
         for v in 0..scanner_cnt {
             if mst_set2[v as usize] == false && key2[v as usize] < min {
                 min = key2[v as usize];
@@ -161,18 +164,17 @@ fn primMST(m: &HashMap<u8, Vec<EdgeInfo>>, scanner_cnt: u8) -> Vec<Vec<u8>> {
         return min_index;
     };
 
-
-    for i in 0..scanner_cnt {
+    for _i in 0..scanner_cnt {
         let u = min_key_fn(&mst_set, &key);
         mst_set[u as usize] = true;
 
-        let cur_node_paths = m.get(&u).unwrap();
+        let cur_node_paths = adj_map.get(&u).unwrap();
 
-        for v in cur_node_paths {
+        for (_j, v) in cur_node_paths {
             let node_id = v.node_id as usize;
-            if mst_set[node_id] == false && COST < key[node_id] {
+            if mst_set[node_id] == false && cost < key[node_id] {
                 parent[node_id] = u;
-                key[node_id] = COST;
+                key[node_id] = cost;
             }
         }
     }
@@ -181,26 +183,37 @@ fn primMST(m: &HashMap<u8, Vec<EdgeInfo>>, scanner_cnt: u8) -> Vec<Vec<u8>> {
     println!("key {:?}", key);
     println!("mst_set {:?}", mst_set);
 
-    for i in 1..scanner_cnt {
+    for i in 0..scanner_cnt {
         let mut r: Vec<u8> = Vec::new();
         let mut cur_node = i;
         for j in 0..scanner_cnt {
             r.push(cur_node);
             cur_node = parent[cur_node as usize];
-            if cur_node == MAX_VAL {
+            if cur_node == max_val {
                 break;
             }
         }
         routes_res.push(r)
     }
-    
+
     return routes_res;
 }
 
+fn create_point_hash(p: &Point) -> String {
+    let mut res: String = p.0.to_string();
+    let space: String = "_".to_owned();
+    res.push_str(&space);
+    res.push_str(&p.1.to_string());
+    res.push_str(&space);
+    res.push_str(&p.2.to_string());
+    return res;
+}
+
 fn main() {
-    let content = fs::read_to_string("src/data01.txt").expect("some bug");
+    let content = fs::read_to_string("src/data-real.txt").expect("some bug");
     let mut scanner_cnt: u8 = 0;
     let mut scanner_map: HashMap<u8, Vec<Point>> = HashMap::new();
+    // CREATE SCANNER MAP FROM FILE
     for (index, line) in content.lines().enumerate() {
         if line.contains("scanner") {
             scanner_cnt += 1;
@@ -213,20 +226,20 @@ fn main() {
             let second: i32 = strs[1].parse().unwrap();
             let third: i32 = strs[2].parse().unwrap();
             scanner_map
-                .get_mut(&(scanner_cnt-1))
+                .get_mut(&(scanner_cnt - 1))
                 .unwrap()
                 .push((first, second, third));
         }
     }
 
-    // MAP SORT HASHMAP
+    // PRINT OUT MAP SORT HASHMAP
     // for key in scanner_map.keys().sorted() {
     //     println!("{}", key);
     //     println!("{:?}", scanner_map[key]);
     // }
 
-    let mut adjacency_map: HashMap<u8, Vec<EdgeInfo>> = HashMap::new();
-
+    let mut adjacency_map: HashMap<u8, HashMap<u8, EdgeInfo>> = HashMap::new();
+    // FILL ADJACENCY MAP
     for key1 in scanner_map.keys().sorted() {
         for key2 in scanner_map.keys().sorted() {
             if *key1 < *key2 {
@@ -281,17 +294,23 @@ fn main() {
                                     from_origin: *beacon_list1_origin,
                                     to_origin: *beacon_list2_origin,
                                     is_reverse_permutation: true,
-                                    permutation: permutation
+                                    permutation: permutation,
                                 };
-                                adjacency_map.entry(*key1).or_default().push(key1_key2_edge_info);
+                                adjacency_map
+                                    .entry(*key1)
+                                    .or_default()
+                                    .insert(*key2, key1_key2_edge_info);
                                 let key2_key1_edge_info = EdgeInfo {
                                     node_id: *key1,
                                     from_origin: *beacon_list2_origin,
                                     to_origin: *beacon_list1_origin,
                                     is_reverse_permutation: false,
-                                    permutation: permutation
+                                    permutation: permutation,
                                 };
-                                adjacency_map.entry(*key2).or_default().push(key2_key1_edge_info);
+                                adjacency_map
+                                    .entry(*key2)
+                                    .or_default()
+                                    .insert(*key1, key2_key1_edge_info);
                                 break;
                             }
                         }
@@ -301,22 +320,75 @@ fn main() {
         }
     }
 
+    // PRINT OUT ADJACENCY MAP
     for key in adjacency_map.keys().sorted() {
         println!("  --{}--", key);
-        let val_vec = adjacency_map.get(key).unwrap();
-        for ei in val_vec {
-            println!("node_id {} is_rev {}", ei.node_id, ei.is_reverse_permutation);
+        let val_map = adjacency_map.get(key).unwrap();
+        for (key2, ei) in val_map {
+            println!(
+                "key2 {} node_id {} is_rev {}",
+                key2, ei.node_id, ei.is_reverse_permutation
+            );
         }
     }
 
-    let routes = primMST(&adjacency_map, scanner_cnt);
-    println!("{:?}", routes);
+    let routes_vec = prim_mst(&adjacency_map, scanner_cnt);
+    println!("{:?}", routes_vec);
 
+    let mut res_map: HashMap<String, Point> = HashMap::new();
+    // GET RESULTING BEACONS MAP
+    for route in &routes_vec {
+        let scanner_id = route[0];
+        let beacons = scanner_map.get(&scanner_id).unwrap();
+        for beacon in beacons {
+            let mut b: Point = (beacon.0, beacon.1, beacon.2);
+            for i in 0..route.len() - 1 {
+                let node_id_from = route[i];
+                let node_id_to = route[i + 1];
+                let edge_info_map = adjacency_map.get(&node_id_from).unwrap();
+                let edge_info = edge_info_map.get(&node_id_to).unwrap();
+                // new origin
+                b = point_to_origin(b, edge_info.from_origin);
+                // permuted point
+                let (change_sign_x, change_sign_y, change_sign_z, swap_yz, shift_all) =
+                    decompose_number(edge_info.permutation);
+                if edge_info.is_reverse_permutation {
+                    b = get_reverse_permuted_point(
+                        b,
+                        change_sign_x,
+                        change_sign_y,
+                        change_sign_z,
+                        swap_yz,
+                        shift_all,
+                    )
+                } else {
+                    b = get_permuted_point(
+                        b,
+                        change_sign_x,
+                        change_sign_y,
+                        change_sign_z,
+                        swap_yz,
+                        shift_all,
+                    )
+                }
+                b = point_to_origin_reverse(b, edge_info.to_origin);
+            }
+            res_map.entry(create_point_hash(&b)).or_insert(b);
+        }
+    }
+
+    // PRINT OUT ALL POINTS
+    for key in res_map.keys().sorted() {
+        let val = res_map.get(key).unwrap();
+        println!("key {}, {} {} {}", key, val.0, val.1, val.2);
+    }
+
+    println!("result {}", res_map.len());
 }
 
 mod test {
     use crate::decompose_number;
-    use crate::get_inverse_permuted_point;
+    use crate::get_reverse_permuted_point;
     use crate::get_permuted_point;
 
     #[test]
@@ -359,7 +431,7 @@ mod test {
             shift_all,
         );
         assert_eq!(res, (3, 1, 2));
-        let res_rev = get_inverse_permuted_point(
+        let res_rev = get_reverse_permuted_point(
             res,
             change_sign_x,
             change_sign_y,
@@ -386,7 +458,7 @@ mod test {
             shift_all,
         );
         assert_eq!(res, (2, 1, 3));
-        let res_rev = get_inverse_permuted_point(
+        let res_rev = get_reverse_permuted_point(
             res,
             change_sign_x,
             change_sign_y,
@@ -413,7 +485,7 @@ mod test {
             shift_all,
         );
         assert_eq!(res, (2, -1, 3));
-        let res_rev = get_inverse_permuted_point(
+        let res_rev = get_reverse_permuted_point(
             res,
             change_sign_x,
             change_sign_y,
@@ -436,7 +508,7 @@ mod test {
             swap_yz,
             shift_all,
         );
-        let res_rev = get_inverse_permuted_point(
+        let res_rev = get_reverse_permuted_point(
             res,
             change_sign_x,
             change_sign_y,
