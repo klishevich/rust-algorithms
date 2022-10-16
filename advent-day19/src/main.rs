@@ -298,6 +298,7 @@ fn prim_mst(adj_map: &HashMap<u8, HashMap<u8, EdgeInfo>>, scanner_cnt: u8) -> Ve
         }
     }
 
+    println!("--prim_mst res--");
     println!("parent {:?}", parent);
     println!("key {:?}", key);
     println!("mst_set {:?}", mst_set);
@@ -318,7 +319,7 @@ fn prim_mst(adj_map: &HashMap<u8, HashMap<u8, EdgeInfo>>, scanner_cnt: u8) -> Ve
     return routes_res;
 }
 
-fn get_resulting_beacons_map(
+fn get_resulting_map(
     routes_vec: &Vec<Vec<u8>>,
     adjacency_map: &HashMap<u8, HashMap<u8, EdgeInfo>>,
     scanner_map: &HashMap<u8, Vec<Point>>,
@@ -367,6 +368,13 @@ fn get_resulting_beacons_map(
     return res_map;
 }
 
+/**
+ * Calculates distance using a taxicab geometry or a Manhattan geometry
+ */
+fn calc_taxicab_distance(p1: &Point, p2: &Point) -> i32 {
+    (p1.0 - p2.0).abs() + (p1.1 - p2.1).abs() + (p1.2 - p2.2).abs()
+}
+
 fn main() {
     let scanner_map: HashMap<u8, Vec<Point>> = create_scanner_map_from_file();
     let scanner_cnt: u8 = scanner_map.len() as u8;
@@ -381,29 +389,54 @@ fn main() {
     // PRINT OUT adjacency_map
     println!("--adjacency_map--");
     for key in adjacency_map.keys().sorted() {
-        println!("  --{}--", key);
+        println!(" {} ->", key);
         let val_map = adjacency_map.get(key).unwrap();
-        for (key2, ei) in val_map {
+        for key2 in val_map.keys().sorted() {
+            let ei = val_map.get(key2).unwrap();
             println!(
-                "key2 {} node_id {} is_rev {}",
-                key2, ei.node_id, ei.is_reverse_permutation
+                "  {}: is_rev {}",
+                key2, ei.is_reverse_permutation
             );
         }
     }
 
     let routes_vec = prim_mst(&adjacency_map, scanner_cnt);
+    // PRINT OUT routes_vec
     println!("--routes_vec--");
     println!("{:?}", routes_vec);
 
-    let res_beacons_map = get_resulting_beacons_map(&routes_vec, &adjacency_map, &scanner_map);
+    // PART 1
+    let res_beacons_map = get_resulting_map(&routes_vec, &adjacency_map, &scanner_map);
     // PRINT OUT res_beacons_map
     println!("--res_beacons_map--");
     for key in res_beacons_map.keys().sorted() {
         let val = res_beacons_map.get(key).unwrap();
         println!("key {}, {} {} {}", key, val.0, val.1, val.2);
     }
+    println!("beacons count {}", res_beacons_map.len());
 
-    println!("result {}", res_beacons_map.len());
+    // PART 2
+    let mut scanner_only_map: HashMap<u8, Vec<Point>> = HashMap::new();
+    for i in 0..scanner_cnt {
+        scanner_only_map.insert(i, vec![(0, 0, 0)]);
+    }
+    let res_scanner_map = get_resulting_map(&routes_vec, &adjacency_map, &scanner_only_map);
+    // PRINT OUT res_beacons_map
+    println!("--res_scanner_map--");
+    for key in res_scanner_map.keys().sorted() {
+        let val = res_scanner_map.get(key).unwrap();
+        println!("key {}, {} {} {}", key, val.0, val.1, val.2);
+    }
+
+    let mut max_taxicab_distance = 0;
+    for (_i, p1) in &res_scanner_map {
+        for (_j, p2) in &res_scanner_map {
+            if calc_taxicab_distance(p1, p2) > max_taxicab_distance {
+                max_taxicab_distance = calc_taxicab_distance(p1, p2)
+            }
+        }
+    }
+    println!("max_taxicab_distance {}", max_taxicab_distance);
 }
 
 mod test {
