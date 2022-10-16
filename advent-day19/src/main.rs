@@ -134,71 +134,6 @@ fn points_equal(p1: Point, p2: Point) -> bool {
     return false;
 }
 
-/**
- * Prim’s Minimum Spanning Tree (MST) | Greedy Algo-5
- * https://www.geeksforgeeks.org/prims-minimum-spanning-tree-mst-greedy-algo-5/
- */
-fn prim_mst(adj_map: &HashMap<u8, HashMap<u8, EdgeInfo>>, scanner_cnt: u8) -> Vec<Vec<u8>> {
-    // let mut included = vec![false; scanner_cnt as usize];
-    let mut routes_res: Vec<Vec<u8>> = vec![];
-    let max_val: u8 = 255;
-    let cost = 1;
-    let mut parent: Vec<u8> = vec![max_val; scanner_cnt as usize];
-    let mut key: Vec<u8> = vec![max_val; scanner_cnt as usize];
-    let mut mst_set: Vec<bool> = vec![false; scanner_cnt as usize];
-
-    key[0] = 0;
-    parent[0] = max_val;
-
-    // Force me to use pure functions
-    // Does not work if I use mst_set and key from the closure
-    let min_key_fn = |mst_set2: &Vec<bool>, key2: &Vec<u8>| -> u8 {
-        let mut min = max_val;
-        let mut min_index = max_val;
-        for v in 0..scanner_cnt {
-            if mst_set2[v as usize] == false && key2[v as usize] < min {
-                min = key2[v as usize];
-                min_index = v;
-            }
-        }
-        return min_index;
-    };
-
-    for _i in 0..scanner_cnt {
-        let u = min_key_fn(&mst_set, &key);
-        mst_set[u as usize] = true;
-
-        let cur_node_paths = adj_map.get(&u).unwrap();
-
-        for (_j, v) in cur_node_paths {
-            let node_id = v.node_id as usize;
-            if mst_set[node_id] == false && cost < key[node_id] {
-                parent[node_id] = u;
-                key[node_id] = cost;
-            }
-        }
-    }
-
-    println!("parent {:?}", parent);
-    println!("key {:?}", key);
-    println!("mst_set {:?}", mst_set);
-
-    for i in 0..scanner_cnt {
-        let mut r: Vec<u8> = Vec::new();
-        let mut cur_node = i;
-        for j in 0..scanner_cnt {
-            r.push(cur_node);
-            cur_node = parent[cur_node as usize];
-            if cur_node == max_val {
-                break;
-            }
-        }
-        routes_res.push(r)
-    }
-
-    return routes_res;
-}
-
 fn create_point_hash(p: &Point) -> String {
     let mut res: String = p.0.to_string();
     let space: String = "_".to_owned();
@@ -209,12 +144,12 @@ fn create_point_hash(p: &Point) -> String {
     return res;
 }
 
-fn main() {
-    let content = fs::read_to_string("src/data-real.txt").expect("some bug");
+fn create_scanner_map_from_file() -> HashMap<u8, Vec<Point>> {
+    let content = fs::read_to_string("src/data01.txt").expect("some bug");
     let mut scanner_cnt: u8 = 0;
     let mut scanner_map: HashMap<u8, Vec<Point>> = HashMap::new();
     // CREATE SCANNER MAP FROM FILE
-    for (index, line) in content.lines().enumerate() {
+    for (_index, line) in content.lines().enumerate() {
         if line.contains("scanner") {
             scanner_cnt += 1;
             scanner_map.insert(scanner_cnt - 1, Vec::new());
@@ -231,15 +166,11 @@ fn main() {
                 .push((first, second, third));
         }
     }
+    return scanner_map;
+}
 
-    // PRINT OUT MAP SORT HASHMAP
-    // for key in scanner_map.keys().sorted() {
-    //     println!("{}", key);
-    //     println!("{:?}", scanner_map[key]);
-    // }
-
+fn fill_adjacency_map(scanner_map: &HashMap<u8, Vec<Point>>) -> HashMap<u8, HashMap<u8, EdgeInfo>> {
     let mut adjacency_map: HashMap<u8, HashMap<u8, EdgeInfo>> = HashMap::new();
-    // FILL ADJACENCY MAP
     for key1 in scanner_map.keys().sorted() {
         for key2 in scanner_map.keys().sorted() {
             if *key1 < *key2 {
@@ -319,25 +250,82 @@ fn main() {
             }
         }
     }
+    return adjacency_map;
+}
 
-    // PRINT OUT ADJACENCY MAP
-    for key in adjacency_map.keys().sorted() {
-        println!("  --{}--", key);
-        let val_map = adjacency_map.get(key).unwrap();
-        for (key2, ei) in val_map {
-            println!(
-                "key2 {} node_id {} is_rev {}",
-                key2, ei.node_id, ei.is_reverse_permutation
-            );
+/**
+ * Prim’s Minimum Spanning Tree (MST) | Greedy Algo-5
+ * https://www.geeksforgeeks.org/prims-minimum-spanning-tree-mst-greedy-algo-5/
+ */
+fn prim_mst(adj_map: &HashMap<u8, HashMap<u8, EdgeInfo>>, scanner_cnt: u8) -> Vec<Vec<u8>> {
+    // let mut included = vec![false; scanner_cnt as usize];
+    let mut routes_res: Vec<Vec<u8>> = vec![];
+    let max_val: u8 = 255;
+    let cost = 1;
+    let mut parent: Vec<u8> = vec![max_val; scanner_cnt as usize];
+    let mut key: Vec<u8> = vec![max_val; scanner_cnt as usize];
+    let mut mst_set: Vec<bool> = vec![false; scanner_cnt as usize];
+
+    key[0] = 0;
+    parent[0] = max_val;
+
+    // Force me to use pure functions
+    // Does not work if I use mst_set and key from the closure
+    let min_key_fn = |mst_set2: &Vec<bool>, key2: &Vec<u8>| -> u8 {
+        let mut min = max_val;
+        let mut min_index = max_val;
+        for v in 0..scanner_cnt {
+            if mst_set2[v as usize] == false && key2[v as usize] < min {
+                min = key2[v as usize];
+                min_index = v;
+            }
+        }
+        return min_index;
+    };
+
+    for _i in 0..scanner_cnt {
+        let u = min_key_fn(&mst_set, &key);
+        mst_set[u as usize] = true;
+
+        let cur_node_paths = adj_map.get(&u).unwrap();
+
+        for (_j, v) in cur_node_paths {
+            let node_id = v.node_id as usize;
+            if mst_set[node_id] == false && cost < key[node_id] {
+                parent[node_id] = u;
+                key[node_id] = cost;
+            }
         }
     }
 
-    let routes_vec = prim_mst(&adjacency_map, scanner_cnt);
-    println!("{:?}", routes_vec);
+    println!("parent {:?}", parent);
+    println!("key {:?}", key);
+    println!("mst_set {:?}", mst_set);
 
+    for i in 0..scanner_cnt {
+        let mut r: Vec<u8> = Vec::new();
+        let mut cur_node = i;
+        for j in 0..scanner_cnt {
+            r.push(cur_node);
+            cur_node = parent[cur_node as usize];
+            if cur_node == max_val {
+                break;
+            }
+        }
+        routes_res.push(r)
+    }
+
+    return routes_res;
+}
+
+fn get_resulting_beacons_map(
+    routes_vec: &Vec<Vec<u8>>,
+    adjacency_map: &HashMap<u8, HashMap<u8, EdgeInfo>>,
+    scanner_map: &HashMap<u8, Vec<Point>>,
+) -> HashMap<String, Point> {
     let mut res_map: HashMap<String, Point> = HashMap::new();
     // GET RESULTING BEACONS MAP
-    for route in &routes_vec {
+    for route in routes_vec {
         let scanner_id = route[0];
         let beacons = scanner_map.get(&scanner_id).unwrap();
         for beacon in beacons {
@@ -376,20 +364,52 @@ fn main() {
             res_map.entry(create_point_hash(&b)).or_insert(b);
         }
     }
+    return res_map;
+}
 
-    // PRINT OUT ALL POINTS
-    for key in res_map.keys().sorted() {
-        let val = res_map.get(key).unwrap();
+fn main() {
+    let scanner_map: HashMap<u8, Vec<Point>> = create_scanner_map_from_file();
+    let scanner_cnt: u8 = scanner_map.len() as u8;
+    // PRINT OUT scanner_map
+    println!("--scanner_map--");
+    for key in scanner_map.keys().sorted() {
+        println!("{}", key);
+        println!("{:?}", scanner_map[key]);
+    }
+
+    let adjacency_map = fill_adjacency_map(&scanner_map);
+    // PRINT OUT adjacency_map
+    println!("--adjacency_map--");
+    for key in adjacency_map.keys().sorted() {
+        println!("  --{}--", key);
+        let val_map = adjacency_map.get(key).unwrap();
+        for (key2, ei) in val_map {
+            println!(
+                "key2 {} node_id {} is_rev {}",
+                key2, ei.node_id, ei.is_reverse_permutation
+            );
+        }
+    }
+
+    let routes_vec = prim_mst(&adjacency_map, scanner_cnt);
+    println!("--routes_vec--");
+    println!("{:?}", routes_vec);
+
+    let res_beacons_map = get_resulting_beacons_map(&routes_vec, &adjacency_map, &scanner_map);
+    // PRINT OUT res_beacons_map
+    println!("--res_beacons_map--");
+    for key in res_beacons_map.keys().sorted() {
+        let val = res_beacons_map.get(key).unwrap();
         println!("key {}, {} {} {}", key, val.0, val.1, val.2);
     }
 
-    println!("result {}", res_map.len());
+    println!("result {}", res_beacons_map.len());
 }
 
 mod test {
     use crate::decompose_number;
-    use crate::get_reverse_permuted_point;
     use crate::get_permuted_point;
+    use crate::get_reverse_permuted_point;
 
     #[test]
     fn get_permuted_point_test() {
