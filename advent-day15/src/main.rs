@@ -77,6 +77,7 @@ fn main() {
         for (index_ch, ch) in line.chars().enumerate() {
             for ir in 0..repeats {
                 for ic in 0..repeats {
+                    // CHAR CODE char.to_digit(10)
                     let val_start: i32 = ch.to_digit(10).unwrap().try_into().unwrap();
                     let mut val: i32 =
                         val_start + i32::try_from(ir).unwrap() + i32::try_from(ic).unwrap();
