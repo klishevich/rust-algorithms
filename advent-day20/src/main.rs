@@ -10,14 +10,11 @@ fn get_number(matrix: &Vec<Vec<bool>>, mi: usize, mj: usize) -> usize {
             if val {
                 s.push('1');
             } else {
-                // if s.len() != 0 {
                 s.push('0');
-                // }
             }
         }
     }
-    let res = usize::from_str_radix(&s, 2).unwrap();
-    return res;
+    return usize::from_str_radix(&s, 2).unwrap();
 }
 
 fn next_matrix(
@@ -45,11 +42,9 @@ fn next_matrix(
 fn main() {
     let content = fs::read_to_string("src/data01.txt").expect("some bug");
     let enhancement_alg = content.lines().next().unwrap();
-    println!("enhancement algorithm {}", enhancement_alg);
 
     let start_image_line = 2;
     let image_size = content.lines().nth(start_image_line).unwrap().len();
-    println!("image size {}", image_size);
 
     let iterations = 50;
     let offset = iterations + 2;
@@ -86,19 +81,7 @@ fn main() {
         image_matrix.push(row_vec);
     }
 
-    for r in &image_matrix {
-        for e in r {
-            if *e {
-                print!("1");
-            } else {
-                print!("0");
-            }
-        }
-        println!("");
-    }
-
     let first_char = enhancement_alg.as_bytes().get(0).unwrap();
-    println!("first char {}", first_char);
 
     let mut fill = false;
     for _k in 0..iterations {
@@ -111,18 +94,6 @@ fn main() {
                 image_matrix[m][0] = fill;
                 image_matrix[m][final_image_size - 1] = fill;
             }
-        }
-
-        println!();
-        for r in &image_matrix {
-            for e in r {
-                if *e {
-                    print!("1");
-                } else {
-                    print!("0");
-                }
-            }
-            println!("");
         }
     }
 
