@@ -177,33 +177,33 @@ fn fill_adjacency_map(scanner_map: &HashMap<u8, Vec<Point>>) -> HashMap<u8, Hash
                 let beacon_list1 = scanner_map.get(key1).unwrap();
                 let beacon_list2 = scanner_map.get(key2).unwrap();
                 let mut origin_found = false;
-                for beacon_list1_origin in beacon_list1 {
+                for beacon_list2_origin in beacon_list2 { //b
                     if origin_found {
                         break;
                     }
-                    for beacon_list2_origin in beacon_list2 {
-                        if origin_found {
-                            break;
-                        }
-                        for permutation in 0..48 {
-                            let (change_sign_x, change_sign_y, change_sign_z, swap_yz, shift_all) =
-                                decompose_number(permutation);
+                    for permutation in 0..48 {  // 48
+                        let (change_sign_x, change_sign_y, change_sign_z, swap_yz, shift_all) =
+                            decompose_number(permutation);
+                        for beacon_list1_origin in beacon_list1 { //b
+                            if origin_found {
+                                break;
+                            }
                             let mut number_of_matches = 0;
-                            for beacon1 in beacon_list1 {
-                                for beacon2 in beacon_list2 {
+                            for beacon2 in beacon_list2 { // b
+                                let beacon2_new_origin =
+                                point_to_origin(*beacon2, *beacon_list2_origin);
+                                // println!("test, beacon_list1_origin {:?}, beacon_list2_origin {:?}", beacon_list1_origin, beacon_list2_origin);
+                                let beacon2_new_origin_perm = get_permuted_point(
+                                    beacon2_new_origin,
+                                    change_sign_x,
+                                    change_sign_y,
+                                    change_sign_z,
+                                    swap_yz,
+                                    shift_all,
+                                );
+                                for beacon1 in beacon_list1 { //b
                                     let beacon1_new_origin =
                                         point_to_origin(*beacon1, *beacon_list1_origin);
-                                    let beacon2_new_origin =
-                                        point_to_origin(*beacon2, *beacon_list2_origin);
-                                    // println!("test, beacon_list1_origin {:?}, beacon_list2_origin {:?}", beacon_list1_origin, beacon_list2_origin);
-                                    let beacon2_new_origin_perm = get_permuted_point(
-                                        beacon2_new_origin,
-                                        change_sign_x,
-                                        change_sign_y,
-                                        change_sign_z,
-                                        swap_yz,
-                                        shift_all,
-                                    );
                                     // println!("test, beacon_list1_origin {:?}, beacon2_new_origin_perm {:?}", beacon_list1_origin, beacon2_new_origin_perm);
                                     if points_equal(beacon1_new_origin, beacon2_new_origin_perm) {
                                         // println!("equal, beacon_list1_origin {:?}, beacon_list2_origin {:?}", beacon_list1_origin, beacon_list2_origin);
