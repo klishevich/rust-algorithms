@@ -1,8 +1,13 @@
 use std::cmp;
 
-// fn update_position(pos: &mut i32, points: &mut i32) {
-
-// }
+fn update_position(pos: &mut i32, points: &mut i32, rolls_sum: i32, board_length: i32) -> () {
+    *pos = (*pos + rolls_sum) % board_length;
+    if *pos == 0 {
+        *points += 10;
+    } else {
+        *points += *pos;
+    }
+}
 
 fn main() {
     let win_points = 1000;
@@ -19,6 +24,7 @@ fn main() {
     let mut last_roll = 0;
 
     let mut roll_die_fn = || -> i32 {
+        rolls_cnt += 1;
         if last_roll < die_sides {
             last_roll = last_roll + 1;
         } else {
@@ -31,21 +37,10 @@ fn main() {
     while points1 < win_points && points2 < win_points {
         player1_turn = !player1_turn;
         let rolls_sum = roll_die_fn() + roll_die_fn() + roll_die_fn();
-        rolls_cnt += 3;
         if player1_turn {
-            position1 = (position1 + rolls_sum) % board_length;
-            if position1 == 0 {
-                points1 += 10;
-            } else {
-                points1 += position1;
-            }
+            update_position(&mut position1, &mut points1, rolls_sum, board_length);
         } else {
-            position2 = (position2 + rolls_sum) % board_length;
-            if position2 == 0 {
-                points2 += 10;
-            } else {
-                points2 += position2;
-            }
+            update_position(&mut position2, &mut points2, rolls_sum, board_length);
         }
     }
     println!("rolls cnt {}", rolls_cnt);
