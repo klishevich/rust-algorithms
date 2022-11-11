@@ -58,3 +58,7 @@ let b = format!("{:04b}", a);
 ## install crate
 
 add to Cargo.toml file 
+```
+[dependencies]
+hex = "0.4.3"
+```
