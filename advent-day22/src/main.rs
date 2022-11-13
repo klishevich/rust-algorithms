@@ -122,7 +122,6 @@ fn part1(file: &str) {
 }
 
 fn part2(file: &str) {
-    // let mut cube: TCube = HashMap::new();
     let commands = read_from_file(file);
     println!("{:?}", commands);
 
@@ -157,9 +156,7 @@ fn part2(file: &str) {
             for z_i in 0..z_vector.len() - 1{
                 let z1 = *z_vector[z_i];
                 let z2 = *z_vector[z_i + 1];
-                // println!("x1 {}, x2 {}, y1 {}, y2 {}, z1 {}, z2 {}", x1, x2, y1, y2, z1, z2);
                 let is_on = get_state_for_dot(x1, y1, z1, &commands);
-                // println!("is_on {}", is_on);
                 if is_on {
                     let x_size: u64 = (x2 - x1).try_into().unwrap();
                     let y_size: u64 = (y2 - y1).try_into().unwrap();
@@ -169,18 +166,7 @@ fn part2(file: &str) {
             }
         }
     }
-
     println!("res {}", res);
-
-    // for command in &commands {
-    //     exec_command(&mut cube, &command);
-    // }
-
-    // println!("x len {}", cube.len());
-    
-
-    // let (no, yes) = calc_intersections(&commands);
-    // println!("no {}, yes {}", no, yes);
 }
 
 fn main() {
