@@ -166,6 +166,16 @@ fn get_room_amphipod(index: usize) -> u8 {
     }
 }
 
+fn get_room_index(amphipod: u8) -> usize {
+    match amphipod {
+        1 => 0,
+        2 => 1,
+        3 => 2,
+        4 => 3,
+        _ => 10
+    }
+}
+
 fn get_distance(i: usize, j: usize) -> u32 {
     if i > j {
         return (i - j).try_into().unwrap();
@@ -208,17 +218,35 @@ impl Req {
         }
         // Rooms
         for (r_i, room) in s.rooms.iter().enumerate() {
-            let amphipod = get_room_amphipod(r_i);
-            let place = get_element_from_room(room, amphipod);
-            if place != -1 {
-                let place_usize: usize = place.try_into().unwrap();
-                let r_a = room[place_usize];
-                let r_position = get_room_position(r_i);
-                let (min, max) = get_available_hallway_positions(&s.hallway, r_position);
+            let place_from = get_element_from_room(room, get_room_amphipod(r_i));
+            if place_from != -1 {
+                let place_from_usize: usize = place_from.try_into().unwrap();
+                let amphipod = room[place_from_usize];
+                let room_from_position = get_room_position(r_i);
+                let target_room_index = get_room_index(amphipod);
+                if r_i != target_room_index {
+                    let place_to = get_available_position_in_room(amphipod, &s.rooms[target_room_index]);
+                    if place_to != -1 {
+                        let place_to_usize: usize = place_to.try_into().unwrap();
+                        let from_room_position = get_room_position(r_i);
+                        let to_room_position = get_room_position(target_room_index);
+                        let length_to = get_path_length_to_room(from_room_position, to_room_position, &s.hallway);
+                        if s.hallway[from_room_position] == 0 && length_to != -1 {
+                            let total_length: u32 = (length_to + ROOM_SIZE_i32 - place_from + ROOM_SIZE_i32 - place_to).try_into().unwrap();
+                            let new_cost = total_length * get_cost_per_step(amphipod);
+                            let new_state = createNewBurrowState(&s, from_room_position, amphipod, r_i, place_from_usize, 0);
+                            let new_state2 = createNewBurrowState(&new_state, from_room_position, 0, target_room_index, place_to_usize, amphipod);
+                            Req::run(self, &new_state2, cost + new_cost);
+                            continue;
+                        }
+                    }
+                }
+
+                let (min, max) = get_available_hallway_positions(&s.hallway, room_from_position);
                 for h_i in min..max {
-                    let total_length: u32 = get_distance(r_position, h_i) + u32::try_from(ROOM_SIZE_i32 - place).unwrap();
-                    let new_cost = total_length * get_cost_per_step(r_a);
-                    let new_state = createNewBurrowState(&s, h_i, r_a, r_i, place_usize, 0);
+                    let total_length: u32 = get_distance(room_from_position, h_i) + u32::try_from(ROOM_SIZE_i32 - place_from).unwrap();
+                    let new_cost = total_length * get_cost_per_step(amphipod);
+                    let new_state = createNewBurrowState(&s, h_i, amphipod, r_i, place_from_usize, 0);
                     Req::run(self, &new_state, cost + new_cost);
                 }
             }
@@ -232,6 +260,7 @@ fn main() {
     };
     let mut req: Req = Req { min_cost: u32::MAX };
     req.run(&state, 0);
+    println!("res {}", req.min_cost);
 }
 
 #[cfg(test)]
