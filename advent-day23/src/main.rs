@@ -2,7 +2,8 @@ use std::cmp;
 use std::collections::HashMap;
 
 const HALLWAY_SIZE: usize = 11;
-const ROOM_SIZE_i32: i32 = 2;
+const ROOM_SIZE: usize = 4;
+const ROOM_SIZE_I32: i32 = 4;
 const BASE5: u64 = 5;
 
 struct BurrowState {
@@ -14,30 +15,57 @@ impl Default for BurrowState {
     fn default() -> Self {
         BurrowState {
             // rooms: vec![vec![1, 2], vec![4, 3], vec![3, 2], vec![1, 4]],
-            rooms: vec![vec![3, 2], vec![4, 1], vec![4, 2], vec![1, 3]],
+            // rooms: vec![vec![3, 2], vec![4, 1], vec![4, 2], vec![1, 3]],
+            rooms: vec![
+                vec![1, 4, 4, 2],
+                vec![4, 2, 3, 3],
+                vec![3, 1, 2, 2],
+                vec![1, 3, 1, 4],
+            ],
             // rooms: vec![
-            //     vec![1, 4, 4, 2],
-            //     vec![4, 2, 3, 3],
-            //     vec![3, 1, 2, 2],
-            //     vec![1, 3, 1, 4],
+            //     vec![3, 4, 4, 2],
+            //     vec![4, 2, 3, 1],
+            //     vec![4, 1, 2, 2],
+            //     vec![1, 3, 1, 3],
             // ],
             hallway: vec![0; HALLWAY_SIZE],
         }
     }
 }
 
-fn get_element_from_room(r: &Vec<u8>, target_amphipod: u8) -> i32 {
-    let mut res = -1;
-    if r[1] == 0 {
-        if r[0] != 0 && r[0] != target_amphipod {
-            res = 0;
-        }
-    } else {
-        if (r[0] == target_amphipod && r[1] != target_amphipod) || r[0] != target_amphipod {
-            res = 1;
+fn get_number_of_target_amphipods(r: &Vec<u8>, amphipod: u8) -> i32 {
+    let mut i: usize = 0;
+    while i < ROOM_SIZE {
+        if r[i] == amphipod {
+            i += 1;
+        } else {
+            break;
         }
     }
-    return res;
+    let last_amphipod_index = i;
+    while i < ROOM_SIZE {
+        if r[i] != 0 {
+            return -1;
+        }
+        i += 1;
+    }
+    return last_amphipod_index.try_into().unwrap();
+}
+
+fn get_element_from_room(r: &Vec<u8>, amphipod: u8) -> i32 {
+    let num = get_number_of_target_amphipods(r, amphipod);
+    if num != -1 {
+        return -1;
+    }
+
+    for j in 0..ROOM_SIZE {
+        let k = ROOM_SIZE - 1 - j;
+        if r[k] != 0 {
+            return k.try_into().unwrap();
+        }
+    }
+
+    return -1;
 }
 
 fn get_available_hallway_positions(h: &Vec<u8>, start_position: usize) -> (usize, usize) {
@@ -62,16 +90,12 @@ fn get_available_hallway_positions(h: &Vec<u8>, start_position: usize) -> (usize
     return (min, max);
 }
 
-fn get_available_position_in_room(amphipod: u8, room: &Vec<u8>) -> i32 {
-    let mut place_in_room = -1; // no place
-    if room[0] == 0 {
-        place_in_room = 0;
-    } else {
-        if room[0] == amphipod && room[1] == 0 {
-            place_in_room = 1;
-        }
+fn get_available_position_in_room(amphipod: u8, r: &Vec<u8>) -> i32 {
+    let num = get_number_of_target_amphipods(r, amphipod);
+    if num == -1 || num == ROOM_SIZE_I32 {
+        return -1;
     }
-    return place_in_room;
+    return num;
 }
 
 fn get_path_length_to_room(
@@ -150,7 +174,7 @@ fn get_room_position(index: usize) -> usize {
         1 => 4,
         2 => 6,
         3 => 8,
-        _ => 0,
+        _ => 100000,
     }
 }
 
@@ -160,7 +184,7 @@ fn get_cost_per_step(a: u8) -> u32 {
         2 => 10,
         3 => 100,
         4 => 1000,
-        _ => 0,
+        _ => 100000,
     }
 }
 
@@ -170,7 +194,7 @@ fn get_room_amphipod(index: usize) -> u8 {
         1 => 2,
         2 => 3,
         3 => 4,
-        _ => 0,
+        _ => 100,
     }
 }
 
@@ -180,7 +204,7 @@ fn get_room_index(amphipod: u8) -> usize {
         2 => 1,
         3 => 2,
         4 => 3,
-        _ => 10,
+        _ => 100,
     }
 }
 
@@ -212,7 +236,7 @@ fn calc_hash(s: &BurrowState) -> u64 {
 
 struct Req {
     min_cost: u32,
-    cache: HashMap<u64, u32>
+    cache: HashMap<u64, u32>,
 }
 
 impl Req {
@@ -223,8 +247,8 @@ impl Req {
                 if cost >= v {
                     return;
                 }
-            },
-            None => ()
+            }
+            None => (),
         };
         self.cache.insert(hash, cost);
         if cost >= self.min_cost {
@@ -238,7 +262,7 @@ impl Req {
         // Hallway
         for (h_i, &h_a) in s.hallway.iter().enumerate() {
             if h_a != 0 {
-                let room_index: usize = (h_a - 1).try_into().unwrap();
+                let room_index: usize = get_room_index(h_a);
                 let room = &s.rooms[room_index];
                 let place = get_available_position_in_room(h_a, room);
                 if place != -1 {
@@ -246,7 +270,7 @@ impl Req {
                         get_path_length_to_room(h_i, get_room_position(room_index), &s.hallway);
                     if length != -1 {
                         let total_length: u32 =
-                            (length + ROOM_SIZE_i32 - place).try_into().unwrap();
+                            (length + ROOM_SIZE_I32 - place).try_into().unwrap();
                         let new_cost = total_length * get_cost_per_step(h_a);
                         let place_usize: usize = place.try_into().unwrap();
                         let new_state =
@@ -263,51 +287,11 @@ impl Req {
                 let place_from_usize: usize = place_from.try_into().unwrap();
                 let amphipod = room[place_from_usize];
                 let room_from_position = get_room_position(r_i);
-                let target_room_index = get_room_index(amphipod);
-                if r_i != target_room_index {
-                    let place_to =
-                        get_available_position_in_room(amphipod, &s.rooms[target_room_index]);
-                    if place_to != -1 {
-                        let place_to_usize: usize = place_to.try_into().unwrap();
-                        let from_room_position = get_room_position(r_i);
-                        let to_room_position = get_room_position(target_room_index);
-                        let length_to = get_path_length_to_room(
-                            from_room_position,
-                            to_room_position,
-                            &s.hallway,
-                        );
-                        if s.hallway[from_room_position] == 0 && length_to != -1 {
-                            let total_length: u32 =
-                                (length_to + ROOM_SIZE_i32 - place_from + ROOM_SIZE_i32 - place_to)
-                                    .try_into()
-                                    .unwrap();
-                            let new_cost = total_length * get_cost_per_step(amphipod);
-                            let new_state = createNewBurrowState(
-                                &s,
-                                from_room_position,
-                                amphipod,
-                                r_i,
-                                place_from_usize,
-                                0,
-                            );
-                            let new_state2 = createNewBurrowState(
-                                &new_state,
-                                from_room_position,
-                                0,
-                                target_room_index,
-                                place_to_usize,
-                                amphipod,
-                            );
-                            Req::run(self, &new_state2, cost + new_cost);
-                            continue;
-                        }
-                    }
-                }
 
                 let (min, max) = get_available_hallway_positions(&s.hallway, room_from_position);
                 for h_i in min..max {
                     let total_length: u32 = get_distance(room_from_position, h_i)
-                        + u32::try_from(ROOM_SIZE_i32 - place_from).unwrap();
+                        + u32::try_from(ROOM_SIZE_I32 - place_from).unwrap();
                     let new_cost = total_length * get_cost_per_step(amphipod);
                     let new_state =
                         createNewBurrowState(&s, h_i, amphipod, r_i, place_from_usize, 0);
@@ -322,7 +306,10 @@ fn main() {
     let state: BurrowState = BurrowState {
         ..Default::default()
     };
-    let mut req: Req = Req { min_cost: u32::MAX, cache: HashMap::new() };
+    let mut req: Req = Req {
+        min_cost: u32::MAX,
+        cache: HashMap::new(),
+    };
     req.run(&state, 0);
     println!("res {}", req.min_cost);
 }

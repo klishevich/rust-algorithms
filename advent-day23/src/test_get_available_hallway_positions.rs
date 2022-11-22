@@ -21,4 +21,11 @@ mod test_get_available_hallway_positions {
         let res = get_available_hallway_positions(&h, 2);
         assert_eq!(res, (1, 4));
     }
+
+    #[test]
+    fn test4() {
+        let h = vec![0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0];
+        let res = get_available_hallway_positions(&h, 2);
+        assert_eq!(res, (2, 2));
+    }
 }
