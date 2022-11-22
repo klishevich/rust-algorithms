@@ -16,18 +16,18 @@ impl Default for BurrowState {
         BurrowState {
             // rooms: vec![vec![1, 2], vec![4, 3], vec![3, 2], vec![1, 4]],
             // rooms: vec![vec![3, 2], vec![4, 1], vec![4, 2], vec![1, 3]],
-            rooms: vec![
-                vec![1, 4, 4, 2],
-                vec![4, 2, 3, 3],
-                vec![3, 1, 2, 2],
-                vec![1, 3, 1, 4],
-            ],
             // rooms: vec![
-            //     vec![3, 4, 4, 2],
-            //     vec![4, 2, 3, 1],
-            //     vec![4, 1, 2, 2],
-            //     vec![1, 3, 1, 3],
+            //     vec![1, 4, 4, 2],
+            //     vec![4, 2, 3, 3],
+            //     vec![3, 1, 2, 2],
+            //     vec![1, 3, 1, 4],
             // ],
+            rooms: vec![
+                vec![3, 4, 4, 2],
+                vec![4, 2, 3, 1],
+                vec![4, 1, 2, 2],
+                vec![1, 3, 1, 3],
+            ],
             hallway: vec![0; HALLWAY_SIZE],
         }
     }
@@ -124,9 +124,9 @@ fn get_path_length_to_room(
 fn is_finish_state(s: &BurrowState) -> bool {
     // let rooms: &Vec<Vec<u8>> = s.rooms.as_ref();
     for (index, room) in s.rooms.iter().enumerate() {
-        let room_amphipod: u8 = (index + 1).try_into().unwrap();
-        for pos in room {
-            if *pos != room_amphipod {
+        let room_amphipod: u8 = get_room_amphipod(index);
+        for &a in room {
+            if a != room_amphipod {
                 return false;
             }
         }
@@ -174,7 +174,7 @@ fn get_room_position(index: usize) -> usize {
         1 => 4,
         2 => 6,
         3 => 8,
-        _ => 100000,
+        _ => 0,
     }
 }
 
@@ -184,7 +184,7 @@ fn get_cost_per_step(a: u8) -> u32 {
         2 => 10,
         3 => 100,
         4 => 1000,
-        _ => 100000,
+        _ => 0,
     }
 }
 
@@ -194,7 +194,7 @@ fn get_room_amphipod(index: usize) -> u8 {
         1 => 2,
         2 => 3,
         3 => 4,
-        _ => 100,
+        _ => 0,
     }
 }
 
@@ -204,7 +204,7 @@ fn get_room_index(amphipod: u8) -> usize {
         2 => 1,
         3 => 2,
         4 => 3,
-        _ => 100,
+        _ => 0,
     }
 }
 
@@ -290,6 +290,9 @@ impl Req {
 
                 let (min, max) = get_available_hallway_positions(&s.hallway, room_from_position);
                 for h_i in min..max {
+                    if [2,4,6,8].contains(&h_i) {
+                        continue;
+                    }
                     let total_length: u32 = get_distance(room_from_position, h_i)
                         + u32::try_from(ROOM_SIZE_I32 - place_from).unwrap();
                     let new_cost = total_length * get_cost_per_step(amphipod);
