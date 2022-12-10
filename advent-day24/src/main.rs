@@ -1,246 +1,230 @@
-use std::collections::HashMap;
-use std::fs;
+use std::{
+    collections::HashMap,
+    fs,
+};
 
-const UNDEF_VAR: usize = 666;
-const UNDEF_I: i64 = 777;
-
-// bool is var
-type TCommandTypeVar1Var2Val2 = (u8, usize, usize, i64);
-
-fn parse_var(s: &str) -> (usize, i64) {
-    match s {
-        "w" => (0, UNDEF_I),
-        "x" => (1, UNDEF_I),
-        "y" => (2, UNDEF_I),
-        "z" => (3, UNDEF_I),
-        other => (UNDEF_VAR, other.parse().unwrap()),
-    }
+#[derive(Debug, Clone, Copy)]
+enum ERegister {
+    W,
+    X,
+    Y,
+    Z,
 }
 
-fn read_alu_commands_from_file(file_name: &str) -> Vec<TCommandTypeVar1Var2Val2> {
-    let type_map: HashMap<&str, u8> = HashMap::from([
-        ("inp", 1),
-        ("add", 2),
-        ("mul", 3),
-        ("div", 4),
-        ("mod", 5),
-        ("eql", 6),
-    ]);
-    let content = fs::read_to_string(file_name).expect("some bug");
-    let mut res: Vec<TCommandTypeVar1Var2Val2> = Vec::new();
-    for line in content.lines() {
-        let mut elements = line.split(" ").peekable();
-        let t_str = elements.next().unwrap();
-        let t: u8 = match type_map.get(t_str) {
-            Some(v) => *v,
-            None => 0,
-        };
-        let (var_a, _val_a) = parse_var(elements.next().unwrap());
-        let mut var_b: usize = UNDEF_VAR;
-        let mut val_b: i64 = UNDEF_I;
-        if !elements.peek().is_none() {
-            (var_b, val_b) = parse_var(elements.next().unwrap());
-        }
-        res.push((t, var_a, var_b, val_b));
-    }
-    return res;
+#[derive(Debug, Clone, Copy)]
+enum EOperand {
+    Register(ERegister),
+    Value(i64),
 }
 
-fn get_b_val(var_vec: &Vec<i64>, var_b: &usize, val_b: &i64) -> i64 {
-    if *var_b == UNDEF_VAR {
-        return *val_b;
-    }
-    return var_vec[*var_b];
+#[derive(Debug, Clone, Copy)]
+enum Ins {
+    Inp(ERegister),
+    Add(ERegister, EOperand),
+    Mul(ERegister, EOperand),
+    Mod(ERegister, EOperand),
+    Div(ERegister, EOperand),
+    Eql(ERegister, EOperand),
 }
 
-fn exec_command(var_vec: &mut Vec<i64>, cmd: &TCommandTypeVar1Var2Val2, inp: i64) -> () {
-    let (cmd_type, var_a, var_b, val_b) = cmd;
-    match *cmd_type {
-        1 => {
-            var_vec[*var_a] = inp;
+struct ALU {
+    w: i64,
+    x: i64,
+    y: i64,
+    z: i64,
+}
+
+impl ALU {
+    fn new(zreg: i64) -> ALU {
+        ALU {
+            w: 0,
+            x: 0,
+            y: 0,
+            z: zreg,
         }
-        2 => {
-            var_vec[*var_a] += get_b_val(var_vec, var_b, val_b);
+    }
+
+    fn read(&self, reg: ERegister) -> i64 {
+        match reg {
+            ERegister::W => self.w,
+            ERegister::X => self.x,
+            ERegister::Y => self.y,
+            ERegister::Z => self.z,
         }
-        3 => var_vec[*var_a] *= get_b_val(var_vec, var_b, val_b),
-        4 => {
-            var_vec[*var_a] = var_vec[*var_a] / get_b_val(var_vec, var_b, val_b);
+    }
+
+    fn write(&mut self, reg: ERegister, val: i64) -> () {
+        match reg {
+            ERegister::W => self.w = val,
+            ERegister::X => self.x = val,
+            ERegister::Y => self.y = val,
+            ERegister::Z => self.z = val,
         }
-        5 => {
-            var_vec[*var_a] = var_vec[*var_a] % get_b_val(var_vec, var_b, val_b);
+    }
+
+    fn eval_operand(&self, op: EOperand) -> i64 {
+        match op {
+            EOperand::Register(reg) => self.read(reg),
+            EOperand::Value(v) => v,
         }
-        6 => {
-            if var_vec[*var_a] == get_b_val(var_vec, var_b, val_b) {
-                var_vec[*var_a] = 1;
-            } else {
-                var_vec[*var_a] = 0;
+    }
+
+    fn eval_prog(&mut self, prog: &Vec<Ins>, input: &Vec<i64>) -> i64 {
+        let mut cursor = 0;
+        for &ins in prog.iter() {
+            match ins {
+                Ins::Inp(reg) => {
+                    self.write(reg, input[cursor]);
+                    cursor += 1;
+                }
+                Ins::Add(reg, op) => self.write(reg, self.read(reg) + self.eval_operand(op)),
+                Ins::Mul(reg, op) => self.write(reg, self.read(reg) * self.eval_operand(op)),
+                Ins::Div(reg, op) => self.write(reg, self.read(reg) / self.eval_operand(op)),
+                Ins::Mod(reg, op) => self.write(reg, self.read(reg) % self.eval_operand(op)),
+                Ins::Eql(reg, op) => self.write(
+                    reg,
+                    if self.read(reg) == self.eval_operand(op) {
+                        1
+                    } else {
+                        0
+                    },
+                ),
             }
         }
-        _ => {
-            panic!("something went wrong on exec_command!")
-        }
-    };
-    // println!("-- {:?}", var_vec);
-}
 
-fn exec_all_commands(
-    var_vec: &mut Vec<i64>,
-    inp_vec: &Vec<i64>,
-    commands: &Vec<TCommandTypeVar1Var2Val2>,
-) {
-    let mut inp_idx = 0;
-    for cmd in commands {
-        if cmd.0 == 1 {
-            let inp = inp_vec[inp_idx];
-            inp_idx += 1;
-            exec_command(var_vec, cmd, inp);
-        } else {
-            exec_command(var_vec, cmd, 0);
-        }
+        self.z
     }
 }
 
-fn exec_all_commands2(
-    var_vec: &mut Vec<i64>,
-    inp_num: u64,
-    commands: &Vec<TCommandTypeVar1Var2Val2>,
-) {
-    let inp_num2 = inp_num.to_string();
-    let mut inp_chars_iter = inp_num2.chars();
-
-    for cmd in commands {
-        if cmd.0 == 1 {
-            let cc = inp_chars_iter.next().unwrap();
-            let inp: i64 = cc.to_digit(10).unwrap().try_into().unwrap();
-            exec_command(var_vec, cmd, inp);
-        } else {
-            exec_command(var_vec, cmd, 0);
-        }
-    }
+struct Solver {
+    progs_by_digit: Vec<Vec<Ins>>,
+    cache: HashMap<(usize, i64), Option<i64>>,
+    recursive_calls: i32,
+    early_outs: i32,
 }
 
-fn get_vectors(digit: u8, base: &Vec<i64>) -> Vec<Vec<i64>> {
-    let mut res: Vec<Vec<i64>> = Vec::new();
-    for i in 1..10 {
-        let mut v: Vec<i64> = Vec::new();
-        for j in 1..15 {
-            if j == digit {
-                v.push(i);
-            } else {
-                v.push(base[usize::try_from(j - 1).unwrap()]);
+impl Solver {
+    fn num_digits(&self) -> usize {
+        self.progs_by_digit.len()
+    }
+
+    fn best_suffix(&mut self, ndigit: usize, prev_z: i64) -> Option<i64> {
+        if ndigit >= self.num_digits() {
+            if prev_z == 0 {
+                return Some(0);
+            }
+
+            return None;
+        }
+
+        if let Some(&cached) = self.cache.get(&(ndigit, prev_z)) {
+            self.early_outs += 1;
+            return cached;
+        }
+
+        for input_guess in (1..=9).rev() {
+            let next_z =
+                ALU::new(prev_z).eval_prog(&self.progs_by_digit[ndigit], &vec![input_guess]);
+            self.recursive_calls += 1;
+            if let Some(best_suffix) = self.best_suffix(ndigit + 1, next_z) {
+                let exp = self.num_digits() - ndigit - 1;
+                let new_suffix = 10_i64.pow(exp as u32) * input_guess + best_suffix;
+
+                self.cache.insert((ndigit, prev_z), Some(new_suffix));
+                return Some(new_suffix);
             }
         }
-        res.push(v);
+
+        self.cache.insert((ndigit, prev_z), None);
+        None
     }
-    return res;
 }
 
 fn main() {
-    let commands = read_alu_commands_from_file("src/data-real.txt");
-    let max: u64 = 99999999999999;
-    // for i in 0..10 {
-    //     let j = max - i;
-    //     let mut var_vec: Vec<i64> = vec![0; 4];
-    //     exec_all_commands2(&mut var_vec, j, &commands);
-    //     if var_vec[3] == 1 {
-    //         println!("res {}", j);
-    //     }
-    //     // if i % 1000000 == 0 {
-    //     //     println!("mln {}", i / 1000000);
-    //     // }
-    //     println!("res {}", var_vec[3]);
-    // }
-
-    // println!("-- 1 --");
-    // for i in 11111111111111..91111111111111 {
-    //     let mut var_vec: Vec<i64> = vec![0; 4];
-    //     exec_all_commands2(&mut var_vec, i, &commands);
-    //     println!("res {}", var_vec[3]);
-    // }
-
-    
-    for pp in 1..2 {
-        println!("---- pp {} -----", pp);
-        // let base:     Vec<i64> = v[1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14];
-        let mut base: Vec<i64> = vec![1, 1, 9, 1, 3, 8, 9, 9, 9, 7, 9, 5, 1, 1];
-        // base[7]=pp;
-        for k in 1..15 {
-            println!("k {}", k);
-            let vv = get_vectors(k, &base);
-            // for v in &vv {
-            //     println!("{:?}", v);
-            // }
-            for (i_v, v) in vv.iter().enumerate() {
-                let mut var_vec: Vec<i64> = vec![0; 4];
-                exec_all_commands(&mut var_vec, &v, &commands);
-                println!("res {}: {}", i_v + 1, var_vec[3]);
-            }
+    let program = parse(&get_input());
+    println!("program length {}", program.len());
+    let mut progs_by_digit = Vec::new();
+    let mut all_ins_iter = program.iter();
+    let num_digits = 14;
+    for _ in 0..num_digits {
+        let mut prog = Vec::new();
+        for _ in 0..(program.len() / num_digits) {
+            prog.push(*all_ins_iter.next().unwrap());
         }
+        progs_by_digit.push(prog);
+    }
+
+    let mut solver = Solver {
+        progs_by_digit,
+        cache: HashMap::new(),
+        recursive_calls: 0,
+        early_outs: 0,
+    };
+    let res = solver.best_suffix(0, 0).unwrap();
+
+    println!(
+        "{} recursive calls: {} early outs {}",
+        res, solver.recursive_calls, solver.early_outs
+    );
+}
+
+fn get_input() -> String {
+    // READ FROM CONSOLE
+    // let mut input = String::new();
+    // io::stdin().lock().read_to_string(&mut input).unwrap();
+    // return input.trim().to_string();
+    let content = fs::read_to_string("src/data-real.txt").expect("some bug");
+    return content.trim().to_string();
+}
+
+fn parse_register(src: &str) -> ERegister {
+    match src {
+        "w" => ERegister::W,
+        "x" => ERegister::X,
+        "y" => ERegister::Y,
+        "z" => ERegister::Z,
+        _ => panic!("invalid register {}", src),
     }
 }
 
-mod test {
-    use crate::exec_all_commands;
-    use crate::TCommandTypeVar1Var2Val2;
-    use crate::UNDEF_VAR;
-
-    #[test]
-    fn test1() {
-        let mut var_vec: Vec<i64> = vec![0; 4];
-        let mut inp: Vec<i64> = vec![4];
-        let commands: Vec<TCommandTypeVar1Var2Val2> =
-            vec![(1, 0, UNDEF_VAR, 0), (3, 0, UNDEF_VAR, -1)];
-        exec_all_commands(&mut var_vec, &mut inp, &commands);
-        assert_eq!(var_vec[0], -4);
+fn parse_operand(src: &str) -> EOperand {
+    match src {
+        "w" => EOperand::Register(ERegister::W),
+        "x" => EOperand::Register(ERegister::X),
+        "y" => EOperand::Register(ERegister::Y),
+        "z" => EOperand::Register(ERegister::Z),
+        _ => EOperand::Value(src.parse::<i64>().unwrap()),
     }
+}
 
-    #[test]
-    fn test2() {
-        let mut var_vec: Vec<i64> = vec![0; 4];
-        let mut inp: Vec<i64> = vec![1, 3];
-        let commands: Vec<TCommandTypeVar1Var2Val2> = vec![
-            (1, 3, UNDEF_VAR, 0),
-            (1, 1, UNDEF_VAR, 0),
-            (3, 3, UNDEF_VAR, 3),
-            (6, 3, 1, 0),
-        ];
-        exec_all_commands(&mut var_vec, &mut inp, &commands);
-        assert_eq!(var_vec[3], 1);
-    }
-
-    #[test]
-    fn test2_1() {
-        let mut var_vec: Vec<i64> = vec![0; 4];
-        let mut inp: Vec<i64> = vec![3, 1];
-        let commands: Vec<TCommandTypeVar1Var2Val2> = vec![
-            (1, 3, UNDEF_VAR, 0),
-            (1, 1, UNDEF_VAR, 0),
-            (3, 3, UNDEF_VAR, 3),
-            (6, 3, 1, 0),
-        ];
-        exec_all_commands(&mut var_vec, &mut inp, &commands);
-        assert_eq!(var_vec[3], 0);
-    }
-
-    #[test]
-    fn test3() {
-        let mut var_vec: Vec<i64> = vec![0; 4];
-        let mut inp: Vec<i64> = vec![15];
-        let commands: Vec<TCommandTypeVar1Var2Val2> = vec![
-            (1, 0, UNDEF_VAR, 0),
-            (2, 3, 0, 0),
-            (5, 3, UNDEF_VAR, 2),
-            (4, 0, UNDEF_VAR, 2),
-            (2, 2, 0, 2),
-            (5, 2, UNDEF_VAR, 2),
-            (4, 0, UNDEF_VAR, 2),
-            (2, 1, 0, 0),
-            (5, 1, UNDEF_VAR, 2),
-            (4, 0, UNDEF_VAR, 2),
-            (5, 0, UNDEF_VAR, 2),
-        ];
-        exec_all_commands(&mut var_vec, &mut inp, &commands);
-        println!("{:?}", var_vec);
-        assert_eq!(var_vec, vec![1, 1, 1, 1]);
-    }
+fn parse(src: &str) -> Vec<Ins> {
+    src.lines()
+        .map(|line| {
+            let mut toks = line.split_ascii_whitespace();
+            match toks.next().unwrap() {
+                "inp" => Ins::Inp(parse_register(toks.next().unwrap())),
+                "add" => Ins::Add(
+                    parse_register(toks.next().unwrap()),
+                    parse_operand(toks.next().unwrap()),
+                ),
+                "mul" => Ins::Mul(
+                    parse_register(toks.next().unwrap()),
+                    parse_operand(toks.next().unwrap()),
+                ),
+                "div" => Ins::Div(
+                    parse_register(toks.next().unwrap()),
+                    parse_operand(toks.next().unwrap()),
+                ),
+                "mod" => Ins::Mod(
+                    parse_register(toks.next().unwrap()),
+                    parse_operand(toks.next().unwrap()),
+                ),
+                "eql" => Ins::Eql(
+                    parse_register(toks.next().unwrap()),
+                    parse_operand(toks.next().unwrap()),
+                ),
+                _ => panic!("could not parse {}", line),
+            }
+        })
+        .collect()
 }
