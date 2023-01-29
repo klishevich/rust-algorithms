@@ -1,37 +1,38 @@
 fn get_val(v: &str) -> i32 {
     match v {
-        "A" => 1,
-        "B" => 2,
-        "C" => 3,
-        "X" => 1,
-        "Y" => 2,
-        "Z" => 3,
-        _ => 0
+        "A" => 0,
+        "B" => 1,
+        "C" => 2,
+        _ => -1000,
     }
 }
 
-fn win_score(h: &str, m: &str) -> i32 {
-    let he = get_val(h);
-    let me = get_val(m);
-    if me == he {
-        return 3;
+fn get_my_val(he: &str, res: &str) -> i32 {
+    let he_i = get_val(he);
+    match res {
+        "X" => (2 + he_i) % 3,
+        "Y" => he_i,
+        "Z" => (1 + he_i) % 3,
+        _ => -1000,
     }
-    if (me - he == 1) || (me == 1 && he == 3) {
-        return 6;
-    }
-    return 0;
 }
 
 fn calc_res(first: &str, second: &str) -> i32 {
-
-    return win_score(first, second) + get_val(second);
+    let he_i = get_val(first);
+    let me_i = get_my_val(first, second);
+    let shape_score = me_i + 1;
+    let win_score = match (3 + me_i - he_i) % 3 {
+        1 => 6,
+        2 => 0,
+        0 => 3,
+        _ => -1000
+    };
+    shape_score + win_score
 }
 
 fn main() {
-    let input = get_test_input();
     let mut res = 0;
-    for row in input.split("\n") {
-        println!("{}", row);
+    for row in get_real_input().split("\n") {
         let (first, second) = row.split_once(" ").unwrap();
         res += calc_res(first, second);
     }
@@ -45,7 +46,7 @@ C Z"
 }
 
 fn get_real_input<'life>() -> &'life str {
-    &r"B Z
+&r"B Z
 C Z
 C Z
 A Y
