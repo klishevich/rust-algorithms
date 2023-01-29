@@ -3,7 +3,7 @@
 ## How to create a new rust project
 
 ```shell
-cargo new --vcs=none advent-day8
+cargo new --vcs=none day02
 ```
 
 ## Build and run
