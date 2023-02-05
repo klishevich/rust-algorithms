@@ -1,6 +1,42 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 fn main() {
+    part2();
+}
+
+fn part2() {
+    let mut res: u32 = 0;
+    let mut all_res: Vec<u8> = Vec::new();
+    let ddd: Vec<&str> =  get_test_input().split("\n").collect();
+    for ee in ddd.chunks(3) {
+        let mut vvv: Vec<HashSet<&u8>> = Vec::new();
+        for &f in ee {
+            let bytes_arr = f.as_bytes();
+            let b: HashSet<&u8> = HashSet::from_iter(bytes_arr);
+            vvv.push(b);
+        }
+        'inner: for fff in &vvv[0] {
+            if vvv[1].contains(fff) && vvv[2].contains(fff) {
+                all_res.push(**fff);
+                break 'inner;
+            }
+        }
+    }
+    println!("{:?}", all_res);
+    for e in all_res {
+        let e1: u32 = e.try_into().unwrap();
+        if 97 <= e && e <= 122 {
+            res += 1 + e1 - 97;
+        }
+        if 65 <= e && e <= 90 {
+            res += 27 + e1 - 65;
+        }
+    }
+    println!("{}", res);
+}
+
+fn part1() {
     let mut res: u32 = 0;
     let mut all_res: Vec<u8> = Vec::new();
     for row in get_real_input().split("\n") {
