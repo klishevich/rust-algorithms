@@ -3,7 +3,7 @@ fn get_val(v: &str) -> i32 {
         "A" => 0,
         "B" => 1,
         "C" => 2,
-        _ => -1000,
+        _ => panic!("die"),
     }
 }
 
@@ -13,7 +13,7 @@ fn get_my_val(he: &str, res: &str) -> i32 {
         "X" => (2 + he_i) % 3,
         "Y" => he_i,
         "Z" => (1 + he_i) % 3,
-        _ => -1000,
+        _ => panic!("die"),
     }
 }
 
@@ -25,7 +25,7 @@ fn calc_res(first: &str, second: &str) -> i32 {
         1 => 6,
         2 => 0,
         0 => 3,
-        _ => -1000
+        _ => panic!("die"),
     };
     shape_score + win_score
 }
@@ -46,7 +46,7 @@ C Z"
 }
 
 fn get_real_input<'life>() -> &'life str {
-&r"B Z
+    &r"B Z
 C Z
 C Z
 A Y
