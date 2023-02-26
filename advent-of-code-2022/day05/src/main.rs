@@ -1,7 +1,5 @@
 use itertools::Itertools;
-
 const INPUT: &str = include_str!("../assets/input.txt");
-
 const NUMBER_CHAR_PER_CRATE: usize = 4;
 const INSTRUCTION_WORD: &str = "move";
 
