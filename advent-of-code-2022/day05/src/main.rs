@@ -1,4 +1,5 @@
 use itertools::Itertools;
+
 const INPUT: &str = include_str!("../assets/input.txt");
 const NUMBER_CHAR_PER_CRATE: usize = 4;
 const INSTRUCTION_WORD: &str = "move";
@@ -15,7 +16,6 @@ fn main() {
     });
     stacks.iter_mut().for_each(|stack| stack.reverse());
 
-    let mut moved_crates = vec![];
     INPUT
         .lines()
         .skip_while(|line| !line.contains(INSTRUCTION_WORD))
@@ -27,6 +27,7 @@ fn main() {
                 .unwrap()
         })
         .for_each(|(number, from, to)| {
+            let mut moved_crates = vec![];
             let new_len = stacks[from].len() - number;
             moved_crates.extend(stacks[from].drain(new_len..));
             // uncomment for part 1
